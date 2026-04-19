@@ -4,10 +4,12 @@ Internet-X is ready to be presented as a research architecture and reference imp
 
 Recommended framing:
 
-- identity-first overlay transport architecture
+- identity-first overlay architecture
+- runnable MVP prototype
 - authenticated locator rebinding
 - packet-inspectable control semantics
-- crypto-agile transition design for PQ adoption
+- real classical baseline with explicit simulated PQ boundary
+- single-instance trusted control plane in the current release
 
 Not recommended framing:
 
@@ -17,4 +19,4 @@ Not recommended framing:
 
 Recommended contribution sentence:
 
-> Internet-X packages stable identity, explicit locator management, authenticated flow establishment, and crypto-agile transition semantics into a coherent overlay transport reference design.
+> Internet-X packages stable identity, explicit locator management, authenticated flow establishment, and conservative transition semantics into a coherent MVP overlay reference design.

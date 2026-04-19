@@ -11,7 +11,7 @@
 \maketitle
 
 \begin{abstract}
-Internet-X is an identity-first overlay transport architecture organized around the explicit chain Name $\rightarrow$ Identity $\rightarrow$ Locator $\rightarrow$ Path. The contribution is not the invention of identifier/locator separation or mobility support in isolation, both of which have substantial prior art, but a coherent protocol composition that combines stable cryptographic identity, explicit flow establishment, authenticated locator rebinding, packet-inspectable control semantics, and explicit crypto-agility hooks for post-quantum transition. This paper presents the current Internet-X reference profile, describes its runnable implementation, positions it against related work, and states clear limitations. The repository supports a real classical secure baseline with simulated post-quantum transition logic, not a claim of current post-quantum security.
+Internet-X is an identity-first overlay architecture organized around the explicit chain Name $\rightarrow$ Identity $\rightarrow$ Locator $\rightarrow$ Path. The contribution is not the invention of identifier/locator separation or mobility support in isolation, both of which have substantial prior art, but a coherent protocol composition that combines stable cryptographic identity, explicit flow establishment, authenticated locator rebinding, packet-inspectable control semantics, a minimally real authenticated control-plane service, and explicit crypto-agility hooks for post-quantum transition. This paper presents the current Internet-X MVP reference profile, describes its runnable implementation, positions it against related work, and states clear limitations. The repository supports a real classical secure baseline with simulated post-quantum transition logic, not a claim of current post-quantum security or production readiness.
 \end{abstract}
 
 \section{Problem Statement}
@@ -51,7 +51,7 @@ The repository addresses off-path spoofing, transcript tampering, downgrade atte
 The repository evaluation is intentionally modest. It includes automated tests, an end-to-end demo, a bounded machine-checkable invariant model, and local loopback latency measurements. These artifacts are sufficient to argue that the reference design is coherent and runnable, but not sufficient to claim deployment readiness or universal superiority over production transports.
 
 \section{Limitations}
-The current package has significant limitations: the directory and locator registry are local JSON abstractions, path selection is not implemented as a standalone routing substrate, the PQ mode is simulated, the packet format is intentionally verbose, and the measurements are local rather than Internet-scale.
+The current package has significant limitations: the control plane is a single-instance, locally trusted authenticated service rather than a federated deployment substrate; path selection is not implemented as a standalone routing substrate; the PQ mode is simulated; the packet format is intentionally verbose; and the measurements are local rather than Internet-scale.
 
 \section{Conclusion}
 Internet-X is best understood as a strong design point under explicit constraints rather than as a universal replacement architecture. Its value lies in making identity-first communication, authenticated locator rebinding, and crypto-agile transition semantics concrete in one repository that another engineer can inspect, run, and critique.

@@ -1,148 +1,103 @@
 # Internet-X
 
-Internet-X is an identity-first experimental overlay transport architecture organized around an explicit resolution chain:
+Internet-X is an identity-first overlay architecture organized around an explicit resolution chain:
 
 ```text
 Name -> Identity -> Locator -> Path
 ```
 
-The repository now contains a runnable reference implementation, a coherent specification set, an Internet-Draft-style document, a paper draft, tests, traces, and an evidence pack. The project remains experimental. It is not a production stack, not a claim that the public Internet should be replaced wholesale, and not a proof of universal optimality.
+This repository is the `v0.2-mvp-n1` release candidate. It is a runnable MVP prototype with a real classical cryptographic baseline, a minimally real authenticated control-plane service, authenticated locator rebinding, and an explicit simulated post-quantum transition boundary. It is not production-ready, not a full Internet replacement, and not a claim of current post-quantum security.
 
-## Status And Scope
+## Status
 
-Current status on April 19, 2026:
+- Release target: `v0.2-mvp-n1`
+- Repository maturity: `MVP-N1 READY`
+- Scope: experimental overlay reference profile
+- Trust boundary: single-instance, locally trusted control-plane service
 
-- Runnable Python reference implementation in `refimpl/`
-- Packet-by-packet specification in `spec/`
-- Reproducible tests and demos in `tests/`, `scripts/`, and `examples/`
-- Prior-art, novelty, security, and evidence documents in `docs/`
-- Publication package in `paper/` and `ietf/`
-- Bounded machine-checkable invariant model in `formal/`
+## Architecture
 
-Not in scope today:
+```text
+Human name
+  -> control-plane Name -> Identity lookup
+  -> control-plane Identity -> Locator lookup
+  -> identity-bound UDP overlay handshake
+  -> authenticated flow
+  -> optional authenticated locator rebinding
 
-- global deployment infrastructure
-- a full routing or path-selection plane
-- a federated or production-grade control-plane service
-- real post-quantum cryptography in the reference implementation
-- congestion control, NAT traversal, or kernel integration
+Path remains architectural only in this release.
+```
 
-## Strongest Defensible Contribution
+## What Works Now
 
-Internet-X should be read as a protocol composition and transition design, not as a claim of absolute novelty. The strongest defensible contribution in this repository is the explicit combination of:
+- `refimpl/` provides a runnable Python reference implementation.
+- The control plane is a separate authenticated HTTP service for registration, `Name -> Identity` resolution, `NodeID -> Locator` resolution, and locator updates.
+- The handshake establishes an identity-bound flow with real classical cryptography: Ed25519, X25519, HKDF-SHA256, HMAC-SHA256, and ChaCha20-Poly1305.
+- The demo shows a single handshake, authenticated locator rebinding, and post-update data delivery on the same logical flow.
+- The repository includes automated tests, a local benchmark harness, a bounded invariant model, a paper draft, and an IETF-style draft aligned to the current implementation.
 
-1. `Name -> Identity -> Locator -> Path` separation as a first-class protocol model
-2. identity-bound flow establishment rather than locator-bound sessions
-3. authenticated locator rebinding as a control-path primitive
-4. packet-inspectable overlay deployment over today's Internet
-5. crypto agility with explicit hybrid and fallback semantics for post-quantum transition
+## What Is Simulated Or Bounded
 
-The prior-art analysis in [`docs/positioning.md`](/Users/maxon/git/me/Internet-x/docs/positioning.md) and [`docs/novelty-matrix.md`](/Users/maxon/git/me/Internet-x/docs/novelty-matrix.md) is intentionally conservative.
-
-## What Is Real Vs Simulated
-
-| Component | Status | Notes |
+| Area | Status | Boundary |
 | --- | --- | --- |
-| Identity model (`NodeID = SHA-256(algorithm_id || signing_public_key)`) | Real in repo | Implemented in the reference code and used consistently in docs |
-| Control plane | Real, minimal | Separate HTTP service with authenticated registration, resolution, locator update, and lease expiry; trust remains local to the demo environment |
-| Handshake state machine | Real | `INIT -> INIT_ACK -> KEM_EXCHANGE -> AUTH -> DATA`, plus `DATA_ACK` and locator update control packets |
-| Classical authenticated session establishment | Real | Ed25519 signatures, X25519 key agreement, HKDF-SHA256, ChaCha20-Poly1305 |
-| Encrypted data exchange | Real | AEAD-protected data packets in the reference implementation |
-| Replay detection for data sequence numbers | Real | Duplicate `DATA` sequences are not re-delivered |
-| Locator update authentication | Real | Signed and MACed locator update control packets |
-| Post-quantum component | Simulated | Hybrid mode mixes simulated PQ shares into transcript and derivation context; it is not real ML-KEM/ML-DSA security |
-| Global path selection plane | Conceptual | Documented architecture only |
-| Formal verification | Partial | Bounded machine-checkable invariants, not a complete proof |
+| Classical crypto baseline | Real | Implemented in the reference code |
+| PQ transition surface | Simulated / pluggable | `simulated-ml-kem-768` exercises negotiation and derivation hooks only |
+| Control plane | Real, minimal | Single-instance and locally trusted; not federated or hardened |
+| Path layer | Architectural only | No standalone routing or path-selection subsystem |
+| Formal analysis | Bounded | Machine-checkable invariants, not a complete proof |
+| Performance evidence | Local only | Loopback benchmark, not Internet-scale evaluation |
 
-## Quickstart
+## How To Run
 
-From a clean clone in the audited environment:
+Install dependencies:
 
 ```bash
 python3 -m pip install -r requirements.txt
-make test
-make demo
 ```
 
-`make demo` generates demo identities, starts the control-plane service and UDP server, runs a client handshake, performs an authenticated locator update, and prints the delivery result.
-
-The audited demo path is `make demo`. The lower-level CLI commands are also usable, but they now require a running control-plane service. The reference implementation ships a minimal resolver/control-plane daemon for loopback and local-network evaluation; it is intentionally central and simple rather than federated or hardened.
-
-For direct CLI use:
+Run tests:
 
 ```bash
-python3 -m refimpl.keygen --name server.demo --locator udp://127.0.0.1:9080 --out examples/identities/server.json
-python3 -m refimpl.keygen --name client.demo --locator udp://127.0.0.1:10080 --out examples/identities/client.json
-python3 -m refimpl.controlplane_service --port 9081
-python3 -m refimpl.server --identity examples/identities/server.json --control-plane http://127.0.0.1:9081
-python3 -m refimpl.client \
-  --identity examples/identities/client.json \
-  --control-plane http://127.0.0.1:9081 \
-  --peer-name server.demo \
-  --message "Hello from Internet-X." \
-  --migrate
+pytest -q tests
 ```
 
-See [`docs/control-plane.md`](/Users/maxon/git/me/Internet-x/docs/control-plane.md) and [`docs/what-is-real-vs-simulated.md`](/Users/maxon/git/me/Internet-x/docs/what-is-real-vs-simulated.md) for the exact control-plane and crypto trust boundaries.
-
-## How To Evaluate The Claims
-
-Use these commands from the repository root:
+Run the demo:
 
 ```bash
-make test
-make demo
+python3 scripts/run_demo.py
+```
+
+Additional validation:
+
+```bash
 python3 scripts/benchmark.py
 python3 formal/bounded_model.py
 make paper-check
 ```
 
-Then read, in order:
-
-1. [`docs/positioning.md`](/Users/maxon/git/me/Internet-x/docs/positioning.md)
-2. [`spec/ixp-v0.2.md`](/Users/maxon/git/me/Internet-x/spec/ixp-v0.2.md)
-3. [`security.md`](/Users/maxon/git/me/Internet-x/spec/security.md)
-4. [`docs/evidence-pack.md`](/Users/maxon/git/me/Internet-x/docs/evidence-pack.md)
-5. [`paper/internetx.tex`](/Users/maxon/git/me/Internet-x/paper/internetx.tex)
-6. [`ietf/draft-internetx-00.md`](/Users/maxon/git/me/Internet-x/ietf/draft-internetx-00.md)
-
-## Repository Map
-
-```text
-.
-├── README.md
-├── RESEARCH_LOG.md
-├── PROJECT_STATUS.md
-├── GAP_ANALYSIS.md
-├── CHANGELOG.md
-├── RELEASE_NOTES_v0.1.md
-├── docs/
-├── spec/
-├── refimpl/
-├── tests/
-├── scripts/
-├── examples/
-├── formal/
-├── paper/
-├── ietf/
-└── prototype/
-```
-
-## Legacy Material
-
-The older `prototype/` directory is preserved as the earlier educational JSON-only v0.1 artifact. The current reference implementation and current specification baseline are `refimpl/` and `spec/ixp-v0.2.md`.
-
 ## Limitations
 
-Internet-X in this repository still has hard limits:
+- The control plane is intentionally central, single-instance, and locally trusted.
+- `Path` is explicit in the architecture but not implemented as a routing plane.
+- PQ support is simulated and pluggable, not production post-quantum cryptography.
+- The implementation is a Python UDP overlay, not a kernel-integrated transport.
+- The evaluation is loopback-scale and does not establish deployment readiness.
 
-- the control plane is a single minimal service, not a federated or hardened deployment subsystem
-- the prototype uses a user-space Python UDP overlay and does not integrate with host sockets or routing tables
-- hybrid PQ mode is not cryptographically real
-- privacy properties are limited because locator metadata remains visible in control packets
-- no congestion control, PMTU discovery, NAT traversal, or large-scale operational evidence is provided
-- the evaluation package demonstrates a strong design point under explicit assumptions; it does not prove universal optimality
+## Roadmap
 
-## License
+- Harden and broaden the control plane beyond the current local-trust MVP model.
+- Replace the simulated PQ hook with a real backend behind the existing agility surface.
+- Extend evaluation beyond loopback, including loss and WAN-like conditions.
+- Decide whether the future work should remain one overlay protocol package or split into smaller components.
 
-MIT. See [`LICENSE`](/Users/maxon/git/me/Internet-x/LICENSE).
+## Key References
+
+- [Release notes](/Users/maxon/git/me/Internet-x/RELEASE_NOTES_v0.2.md)
+- [Changelog](/Users/maxon/git/me/Internet-x/CHANGELOG.md)
+- [Spec](/Users/maxon/git/me/Internet-x/spec/ixp-v0.2.md)
+- [Control-plane notes](/Users/maxon/git/me/Internet-x/docs/control-plane.md)
+- [What is real vs simulated](/Users/maxon/git/me/Internet-x/docs/what-is-real-vs-simulated.md)
+- [Demo validation](/Users/maxon/git/me/Internet-x/docs/demo-validation.md)
+- [Test results](/Users/maxon/git/me/Internet-x/docs/test-results.md)
+- [Paper draft](/Users/maxon/git/me/Internet-x/paper/internetx.tex)
+- [IETF-style draft](/Users/maxon/git/me/Internet-x/ietf/draft-internetx-00.md)

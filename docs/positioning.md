@@ -2,7 +2,7 @@
 
 ## One-Sentence Positioning
 
-Internet-X is an identity-first overlay transport architecture that combines explicit `Name -> Identity -> Locator -> Path` separation, identity-bound flow establishment, authenticated locator rebinding, and crypto-agile transition hooks into a packet-inspectable reference system.
+Internet-X is an identity-first overlay architecture that combines explicit `Name -> Identity -> Locator -> Path` separation, identity-bound flow establishment, authenticated locator rebinding, and crypto-agile transition hooks into a packet-inspectable reference system.
 
 ## What Internet-X Is NOT
 
@@ -32,15 +32,16 @@ The novelty is therefore narrow and compositional. The value is in how the piece
 - The spec and code preserve the resolution chain `Name -> Identity -> Locator -> Path` rather than collapsing it into a single address token.
 - The architecture is deployable as an overlay over current IPv4/IPv6 infrastructure.
 - The implementation demonstrates a real classical security baseline and a clearly delimited simulated PQ transition hook.
+- The current MVP-N1 release uses a single-instance, locally trusted authenticated control-plane service rather than a federated resolver design.
 - Under the repository's stated assumptions, the design is a strong design point for mobility-aware, inspectable, identity-bound overlay flows.
 
 ## Claims We Must Not Make
 
 - Internet-X is wholly novel in the presence of HIP, LISP, ILNP, QUIC migration, MOBIKE, and other prior art.
 - The current repository delivers real post-quantum security.
-- The current code is production-ready or audited.
+- The current code is security-audited or production-ready.
 - The design is universally optimal across latency, complexity, deployability, and privacy.
-- The directory and locator abstractions here are sufficient for real-world deployment.
+- The current control-plane service is sufficient for real-world deployment by itself.
 
 ## Why Near-Optimal Can Only Be Conditional
 

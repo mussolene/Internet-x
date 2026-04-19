@@ -10,11 +10,11 @@
 ## Mid Term
 
 - integrate a real PQ backend behind the existing crypto-agility interface
-- replace JSON-backed directory and registry abstractions with authenticated services
+- harden the authenticated control-plane service with persistence, lease refresh, and admission policy
 - add NAT traversal experiments and multi-path path selection policies
 
 ## Long Term
 
 - study kernel or user-space socket integration
 - evaluate interoperability with broader naming and mobility systems
-- decide whether the protocol should remain an overlay transport or be decomposed into smaller standardization units
+- decide whether the protocol should remain an overlay architecture package or be decomposed into smaller standardization units

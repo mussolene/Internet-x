@@ -2,7 +2,7 @@
 
 ## Abstract
 
-Internet-X is an identity-first overlay transport architecture that separates naming, stable endpoint identity, current locator state, and path selection. This draft specifies a runnable reference profile in which endpoints establish an identity-bound flow over a UDP overlay, authenticate control packets, protect application data, and support authenticated locator rebinding.
+Internet-X is an identity-first overlay architecture that separates naming, stable endpoint identity, current locator state, and path selection. This draft specifies the current MVP-N1 runnable reference profile in which endpoints establish an identity-bound flow over a UDP overlay, authenticate control packets, protect application data, and support authenticated locator rebinding.
 
 ## Motivation
 

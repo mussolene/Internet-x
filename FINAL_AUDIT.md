@@ -23,7 +23,7 @@ The repo remains experimental and locally trusted in operational terms, but thos
 ## Commands And Results
 
 ```bash
-python3 -m pytest -q tests
+pytest -q tests
 python3 scripts/run_demo.py
 python3 scripts/benchmark.py
 python3 formal/bounded_model.py
@@ -31,9 +31,9 @@ make paper-check
 ```
 
 Observed results on the remediated repository state:
-- `python3 -m pytest -q tests` -> `17 passed`
+- `pytest -q tests` -> `17 passed`
 - `python3 scripts/run_demo.py` -> successful control-plane startup, service-backed resolution, locator update, control-plane locator version `2`, and post-update data delivery
-- `python3 scripts/benchmark.py` -> 10 loopback runs, median latency `107.124 ms`
+- `python3 scripts/benchmark.py` -> 10 loopback runs, min `108.277 ms`, median `110.067 ms`, max `136.208 ms`
 - `python3 formal/bounded_model.py` -> `{'checked_traces': 145, 'max_depth': 6}`
 - `make paper-check` -> passed
 

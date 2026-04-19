@@ -5,7 +5,7 @@ Expires: October 2026
 
 ## Abstract
 
-This document describes Internet-X, an identity-first overlay transport that separates names, stable endpoint identities, mutable locators, and selected paths. The protocol defines an explicit flow-establishment sequence, authenticated locator update, and a crypto-agility surface for hybrid and fallback operation.
+This document describes Internet-X, an identity-first overlay architecture that separates names, stable endpoint identities, mutable locators, and selected paths. The current repository draft defines an experimental MVP reference profile with an explicit flow-establishment sequence, authenticated locator update, a minimally real authenticated control-plane service, and a crypto-agility surface for hybrid and fallback operation.
 
 ## Status Of This Memo
 
@@ -94,11 +94,11 @@ Peers send `ERROR` when they detect malformed packets, unsupported suites, trans
 
 ## 9. Security Considerations
 
-The protocol aims to bind flows to stable identities rather than locators alone, detect transcript tampering, resist basic replay on data packets, and require authentication for locator rebinding. The current reference profile does not attempt to hide all metadata, and it relies on trusted local directory and locator abstractions in the repository implementation.
+The protocol aims to bind flows to stable identities rather than locators alone, detect transcript tampering, resist basic replay on data packets, and require authentication for locator rebinding. The current reference profile does not attempt to hide all metadata, and the repository implementation relies on a single-instance, locally trusted authenticated control-plane service rather than a distributed or hardened deployment.
 
 ## 10. Deployment Considerations
 
-Internet-X is defined here as an overlay-first design. It is intended to coexist with current IPv4/IPv6 infrastructure. This document does not specify a global naming service, routing plane, or deployment-grade locator service.
+Internet-X is defined here as an overlay-first design. It is intended to coexist with current IPv4/IPv6 infrastructure. This document does not specify a global naming service, routing plane, or deployment-grade locator service, and it does not claim to replace the existing Internet.
 
 ## 11. IANA Considerations
 

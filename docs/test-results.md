@@ -12,7 +12,7 @@ pytest -q tests
 
 Observed result:
 
-- `11 passed`
+- `17 passed`
 
 Covered behaviors:
 
@@ -24,6 +24,8 @@ Covered behaviors:
 - replay of an identical `DATA` packet without duplicate application delivery
 - locator update and post-migration continuity
 - stale locator update rejection
+- invalid control-plane registration rejection
+- lease expiry removes stale locator resolution
 - multi-node independent session establishment
 - bounded machine-checkable invariants
 
@@ -53,10 +55,34 @@ python3 scripts/benchmark.py
 Observed local loopback summary from this repository state:
 
 - runs: 10
-- latency min: 71.349 ms
-- latency median: 75.908 ms
-- latency max: 80.928 ms
+- latency min: 108.277 ms
+- latency median: 110.067 ms
+- latency max: 136.208 ms
 
 Interpretation:
 
 These numbers are local-process and Python-runtime measurements. They are useful as reproducibility evidence, not as Internet-scale performance claims.
+
+## Bounded Model
+
+Command:
+
+```bash
+python3 formal/bounded_model.py
+```
+
+Observed result:
+
+- `{'checked_traces': 145, 'max_depth': 6}`
+
+## Paper Check
+
+Command:
+
+```bash
+make paper-check
+```
+
+Observed result:
+
+- passed
