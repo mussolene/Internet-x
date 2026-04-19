@@ -4,35 +4,43 @@ Audit date: April 19, 2026.
 
 ## Verdict
 
-`RESEARCH-DEMO READY`
+`MVP-N1 READY`
 
 ## Why This Is The Verdict
 
-The repository is internally coherent, runnable, technically honest, and fairly positioned as a research demo after the audit fixes.
+The repository is internally coherent, runnable, technically honest, and fairly positioned after the targeted control-plane remediation pass.
 
-It is not `MVP-N1 READY` because the control plane remains a local JSON abstraction rather than a minimally real service layer, and the repository's own strongest honest framing is still that of a research architecture plus runnable reference implementation.
+The former P0 blocker is now cleared:
+
+- the control plane is a separate live service process rather than local JSON artifacts
+- node registration is authenticated against the node identity
+- `Name -> Identity` and `NodeID -> Locator` resolution run through the service
+- locator updates are authenticated, freshness-bounded, and rejected when stale or incorrectly signed
+- the demo and runtime path now use the service as the authoritative control plane
+
+The repo remains experimental and locally trusted in operational terms, but those remaining limitations do not invalidate an `MVP-N1 READY` verdict.
 
 ## Commands And Results
 
 ```bash
-pytest -q tests
+python3 -m pytest -q tests
 python3 scripts/run_demo.py
 python3 scripts/benchmark.py
 python3 formal/bounded_model.py
 make paper-check
 ```
 
-Observed results on the audited repository state:
-- `pytest -q tests` -> `11 passed`
-- `python3 scripts/run_demo.py` -> successful handshake, locator update, and post-update data delivery
-- `python3 scripts/benchmark.py` -> 10 loopback runs, median latency `75.908 ms`
+Observed results on the remediated repository state:
+- `python3 -m pytest -q tests` -> `17 passed`
+- `python3 scripts/run_demo.py` -> successful control-plane startup, service-backed resolution, locator update, control-plane locator version `2`, and post-update data delivery
+- `python3 scripts/benchmark.py` -> 10 loopback runs, median latency `107.124 ms`
 - `python3 formal/bounded_model.py` -> `{'checked_traces': 145, 'max_depth': 6}`
 - `make paper-check` -> passed
 
 ## Answers To The Primary Audit Questions
 
 1. Is the prototype actually runnable from a clean clone?
-Yes for the audited path, after installing dependencies with `python3 -m pip install -r requirements.txt`. `make test` and `make demo` are runnable. The low-level CLI path is less turnkey because it depends on prebuilt directory and registry JSON files.
+Yes for the audited path, after installing dependencies with `python3 -m pip install -r requirements.txt`. `make test` and `make demo` are runnable. The low-level CLI path now requires a running control-plane service rather than prebuilt JSON control-plane files.
 
 2. Do the specs and the code describe the same protocol?
 Yes after minimal audit corrections. The main mismatches were loose wording around control-path retransmission scope and duplicate `DATA` handling. Those are now aligned.
@@ -47,13 +55,13 @@ Yes for the classical baseline. The code implements Ed25519 signatures, X25519 e
 Yes. The repository consistently presents PQ support as simulated transition logic, not real post-quantum security.
 
 6. Is the resolver/control plane real and necessary, or only nominal?
-It is necessary to the architecture, but nominal in implementation terms. The repo uses local JSON-backed directory and locator registry artifacts, not a live control-plane service.
+It is necessary to the architecture and now minimally real in implementation terms. The repo uses a live authenticated control-plane service for registration, resolution, and locator updates. It is intentionally central and locally trusted, not federated or production-hardened.
 
 7. Are tests meaningful, or mostly superficial?
-They are meaningful but modest. They cover handshake success, malformed packets, downgrade detection, retransmission, duplicate-data replay suppression, stale locator-update rejection, locator continuity, and multi-session behavior. They do not amount to a broad adversarial or wide-area test campaign.
+They are meaningful but modest. They cover authenticated registration, service-backed resolution, authenticated locator update, invalid signature rejection, stale update rejection, handshake success, malformed packets, downgrade detection, retransmission, duplicate-data replay suppression, locator continuity, and multi-session behavior. They do not amount to a broad adversarial or wide-area test campaign.
 
 8. Is the paper aligned with the code/spec, or does it overstate maturity?
-It is aligned and conservative. The paper explicitly says the repository is a runnable reference profile with a real classical baseline and simulated PQ mode, not a production-ready system.
+It is aligned and conservative. The paper continues to describe a runnable reference profile with a real classical baseline and simulated PQ mode, not a production-ready system.
 
 9. Is the IETF draft consistent with the implementation?
 Yes. It reads like an experimental repo draft and stays within the implemented message set and documented claim boundaries.
@@ -63,21 +71,20 @@ Yes. The repo now frames Internet-X as a narrow compositional contribution: iden
 
 ## Minimal Fixes Applied During Audit
 
-- Fixed audit tests so they validate real duplicate-data replay and stale locator-update behavior.
-- Removed hidden fixed-port assumptions from the demo and benchmark scripts.
-- Tightened README quickstart and control-plane wording.
-- Tightened spec wording so retransmission scope and duplicate-`DATA` handling match the code.
-- Updated test-results content to reflect the current audited run.
+- Preserved the audited research-demo baseline with commit `chore: snapshot audited research-demo baseline before control-plane remediation` and tag `v0.1-research-demo`.
+- Added a live authenticated control-plane service with signed registration, service-backed resolution, signed locator updates, lease expiry, and stale update rejection.
+- Rewired client, server, demo, benchmark, and tests to use the control-plane service as the authoritative runtime control plane.
+- Tightened README, status, claims, spec, and release-blocker wording so the repository no longer describes the control plane as only local JSON.
 
 ## Remaining Risks
 
-- The control plane is intentionally minimal and local.
+- The control plane is intentionally minimal, central, and locally trusted.
 - `Path` remains architectural rather than implemented.
 - PQ remains simulated.
 - The evaluation remains loopback-scale and research-oriented.
 
 ## Bottom Line
 
-The repository clears a conservative research-demo release gate.
+The repository clears the former MVP-N1 blocker without widening scope beyond the narrow remediation target.
 
-It does not clear an MVP-N1 release gate without redefining MVP downward or ignoring the fact that the control plane is still a local artifact layer rather than a minimally real subsystem.
+It is still not a production system, a federated naming infrastructure, or a real PQ-secure transport stack. Within its stated scope, however, `MVP-N1 READY` is now the defensible maturity verdict.

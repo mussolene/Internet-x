@@ -6,7 +6,7 @@ import argparse
 from pathlib import Path
 import json
 
-from .directory import JSONDirectory, JSONLocatorRegistry
+from .controlplane import ControlPlaneClient
 from .engine import InternetXClient
 from .identity import NodeIdentity
 
@@ -14,8 +14,7 @@ from .identity import NodeIdentity
 def main() -> None:
     parser = argparse.ArgumentParser(description="Internet-X reference UDP client")
     parser.add_argument("--identity", required=True, help="Path to node identity JSON")
-    parser.add_argument("--directory", required=True, help="Path to directory JSON")
-    parser.add_argument("--registry", required=True, help="Path to locator registry JSON")
+    parser.add_argument("--control-plane", required=True, help="Base URL for the control-plane service")
     parser.add_argument("--peer-name", required=True, help="Remote peer name to resolve")
     parser.add_argument("--message", default="Hello from Internet-X.", help="Application payload")
     parser.add_argument("--trace", default="examples/traces/client-trace.log", help="Trace output path")
@@ -23,13 +22,11 @@ def main() -> None:
     args = parser.parse_args()
 
     identity = NodeIdentity.load(args.identity)
-    directory = JSONDirectory.load(args.directory)
-    registry = JSONLocatorRegistry.load(args.registry)
+    control_plane = ControlPlaneClient(args.control_plane)
     client = InternetXClient(
         identity,
         peer_name=args.peer_name,
-        directory=directory,
-        registry=registry,
+        control_plane=control_plane,
         trace_path=Path(args.trace),
     )
     result = client.run(args.message, perform_locator_update=args.migrate)

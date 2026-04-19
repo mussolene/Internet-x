@@ -4,6 +4,11 @@
 
 A locator change must not force an identity change or a new application-level peer binding. Internet-X therefore treats mobility as an authenticated locator-management operation within an existing flow.
 
+For the current MVP-N1 reference profile, locator change has two related effects:
+
+- `LOCATOR_UPDATE` and `LOCATOR_UPDATE_ACK` preserve the active authenticated flow.
+- a signed control-plane locator update makes future `NodeID -> Locator` resolution reflect the new locator.
+
 ## Packet Types
 
 - `LOCATOR_UPDATE`

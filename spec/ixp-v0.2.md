@@ -35,10 +35,12 @@ The `NodeID` is stable across locator changes. Locator change alone must never i
 
 ## Architectural Overview
 
-1. A client resolves a `Name` to an identity record.
-2. The client resolves that identity to a current locator.
+1. A node registers its `Name`, `NodeID`, and current locator with the control plane using an identity-bound signed request and a bounded lease.
+2. A client resolves a `Name` to an identity record through the control plane.
+3. The client resolves that identity to a current locator through the control plane.
 3. The client establishes an authenticated flow against the resolved identity.
 4. The client and server may later authenticate a new locator for the same identity-bound flow.
+5. A node that changes locator updates the control plane with a higher locator version so future resolution reflects the new endpoint.
 
 ## Packet Model
 
@@ -94,7 +96,7 @@ The security model is defined in [`spec/security.md`](/Users/maxon/git/me/Intern
 
 ## Limitations
 
-- local directory and locator registry only
+- single minimal authenticated control-plane service only
 - no full path-selection plane
 - JSON packet overhead
 - limited privacy for visible control metadata

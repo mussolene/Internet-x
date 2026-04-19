@@ -10,7 +10,7 @@ import time
 from typing import Any, Iterable
 
 from . import crypto
-from .directory import JSONDirectory, JSONLocatorRegistry
+from .controlplane import ControlPlaneClient
 from .identity import NodeIdentity, PeerRecord, derive_node_id
 from .packet import (
     AUTH,
@@ -84,6 +84,7 @@ class InternetXServer:
         self,
         identity: NodeIdentity,
         *,
+        control_plane: ControlPlaneClient | None = None,
         host: str = DEFAULT_HOST,
         port: int = DEFAULT_PORT,
         timeout: float = 0.2,
@@ -98,10 +99,19 @@ class InternetXServer:
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.settimeout(timeout)
         self.sock.bind((host, port))
+        self.identity.locator = self.locator
+        self.control_plane = control_plane
+        self.control_plane_locator_version = 1
         self.sessions: dict[str, SessionState] = {}
         self.drop_once = set(drop_once or [])
         self.drop_history: set[str] = set()
         self.running = False
+        if self.control_plane is not None:
+            self.control_plane.register_identity(
+                self.identity,
+                locator=self.locator,
+                locator_version=self.control_plane_locator_version,
+            )
 
     @property
     def locator(self) -> str:
@@ -444,16 +454,14 @@ class InternetXClient:
         identity: NodeIdentity,
         *,
         peer_name: str,
-        directory: JSONDirectory,
-        registry: JSONLocatorRegistry,
+        control_plane: ControlPlaneClient,
         timeout: float = 0.5,
         retries: int = 3,
         trace_path: str | Path | None = None,
     ) -> None:
         self.identity = identity
         self.peer_name = peer_name
-        self.directory = directory
-        self.registry = registry
+        self.control_plane = control_plane
         self.timeout = timeout
         self.retries = retries
         self.trace = TraceRecorder(trace_path)
@@ -462,6 +470,12 @@ class InternetXClient:
         self.session_id = crypto.random_token()
         self.client_ephemeral_private, self.client_ephemeral_public = crypto.generate_ephemeral_keypair()
         self.client_pq_share = crypto.b64encode(b"client-pq-" + bytes.fromhex(crypto.random_token(16)))
+        self.control_plane_locator_version = 1
+        self.control_plane.register_identity(
+            self.identity,
+            locator=self.identity.locator,
+            locator_version=self.control_plane_locator_version,
+        )
         self.peer = self.resolve_peer()
         self.transcript: list[dict[str, Any]] = []
         self.init_packet: dict[str, Any] | None = None
@@ -478,10 +492,7 @@ class InternetXClient:
         self.locator_update_counter = 0
 
     def resolve_peer(self) -> PeerRecord:
-        peer = self.directory.resolve_name(self.peer_name)
-        locator_info = self.registry.lookup(peer.node_id)
-        peer.locator = str(locator_info["locator"])
-        return peer
+        return self.control_plane.resolve_peer(self.peer_name)
 
     def log(self, message: str) -> None:
         print(f"[client] {message}")
@@ -662,7 +673,6 @@ class InternetXClient:
         new_locator = f"udp://{new_host}:{new_port}"
         previous_locator = self.identity.locator
         self.identity.locator = new_locator
-        self.registry.register_locator(self.identity.node_id, new_locator, source="client-locator-update")
         self.sock.close()
         self.sock = new_sock
         fields = {
@@ -692,10 +702,19 @@ class InternetXClient:
         response = self.receive_packet({LOCATOR_UPDATE_ACK})
         crypto.verify_fields(self.peer, "LOCATOR_UPDATE_ACK", fields, str(response["payload"]["signature"]))
         crypto.verify_mac(self.keys.update_key, "LOCATOR_UPDATE_ACK", fields, str(response["payload"]["update_mac"]))
+        self.control_plane_locator_version += 1
+        control_plane_result = self.control_plane.update_locator(
+            self.identity,
+            previous_locator=previous_locator,
+            new_locator=new_locator,
+            locator_version=self.control_plane_locator_version,
+        )
         self.locator_update_counter += 1
         return {
             "acknowledged_counter": response["payload"]["acknowledged_counter"],
             "active_locator": response["payload"]["active_locator"],
+            "control_plane_locator": control_plane_result["record"]["locator"],
+            "control_plane_locator_version": control_plane_result["record"]["locator_version"],
         }
 
 

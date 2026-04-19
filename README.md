@@ -23,7 +23,7 @@ Not in scope today:
 
 - global deployment infrastructure
 - a full routing or path-selection plane
-- a production-grade directory or locator service
+- a federated or production-grade control-plane service
 - real post-quantum cryptography in the reference implementation
 - congestion control, NAT traversal, or kernel integration
 
@@ -44,7 +44,7 @@ The prior-art analysis in [`docs/positioning.md`](/Users/maxon/git/me/Internet-x
 | Component | Status | Notes |
 | --- | --- | --- |
 | Identity model (`NodeID = SHA-256(algorithm_id || signing_public_key)`) | Real in repo | Implemented in the reference code and used consistently in docs |
-| Directory and locator abstractions | Real, minimal | JSON-backed local abstractions for demo and tests |
+| Control plane | Real, minimal | Separate HTTP service with authenticated registration, resolution, locator update, and lease expiry; trust remains local to the demo environment |
 | Handshake state machine | Real | `INIT -> INIT_ACK -> KEM_EXCHANGE -> AUTH -> DATA`, plus `DATA_ACK` and locator update control packets |
 | Classical authenticated session establishment | Real | Ed25519 signatures, X25519 key agreement, HKDF-SHA256, ChaCha20-Poly1305 |
 | Encrypted data exchange | Real | AEAD-protected data packets in the reference implementation |
@@ -64,24 +64,26 @@ make test
 make demo
 ```
 
-`make demo` generates demo identities, starts the server, runs a client handshake, performs an authenticated locator update, and prints the delivery result.
+`make demo` generates demo identities, starts the control-plane service and UDP server, runs a client handshake, performs an authenticated locator update, and prints the delivery result.
 
-The audited demo path is `make demo`. The lower-level CLI commands are also usable, but they require prebuilt directory and locator-registry JSON files. The repository does not ship a long-running resolver daemon; name resolution and locator lookup are file-backed abstractions in the current reference implementation.
+The audited demo path is `make demo`. The lower-level CLI commands are also usable, but they now require a running control-plane service. The reference implementation ships a minimal resolver/control-plane daemon for loopback and local-network evaluation; it is intentionally central and simple rather than federated or hardened.
 
-For direct CLI use after preparing matching directory and registry files:
+For direct CLI use:
 
 ```bash
 python3 -m refimpl.keygen --name server.demo --locator udp://127.0.0.1:9080 --out examples/identities/server.json
 python3 -m refimpl.keygen --name client.demo --locator udp://127.0.0.1:10080 --out examples/identities/client.json
-python3 -m refimpl.server --identity examples/identities/server.json
+python3 -m refimpl.controlplane_service --port 9081
+python3 -m refimpl.server --identity examples/identities/server.json --control-plane http://127.0.0.1:9081
 python3 -m refimpl.client \
   --identity examples/identities/client.json \
-  --directory examples/demo-directory.json \
-  --registry examples/demo-registry.json \
+  --control-plane http://127.0.0.1:9081 \
   --peer-name server.demo \
   --message "Hello from Internet-X." \
   --migrate
 ```
+
+See [`docs/control-plane.md`](/Users/maxon/git/me/Internet-x/docs/control-plane.md) and [`docs/what-is-real-vs-simulated.md`](/Users/maxon/git/me/Internet-x/docs/what-is-real-vs-simulated.md) for the exact control-plane and crypto trust boundaries.
 
 ## How To Evaluate The Claims
 
@@ -134,7 +136,7 @@ The older `prototype/` directory is preserved as the earlier educational JSON-on
 
 Internet-X in this repository still has hard limits:
 
-- the directory and locator registry are local JSON files, not secure global services
+- the control plane is a single minimal service, not a federated or hardened deployment subsystem
 - the prototype uses a user-space Python UDP overlay and does not integrate with host sockets or routing tables
 - hybrid PQ mode is not cryptographically real
 - privacy properties are limited because locator metadata remains visible in control packets

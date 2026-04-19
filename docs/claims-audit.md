@@ -18,18 +18,18 @@ Classification labels:
 | Source | Claim | Classification | Evidence / audit action |
 | --- | --- | --- | --- |
 | `README.md` | Runnable reference implementation exists | Supported by code and test evidence | `pytest -q tests` passed; `python3 scripts/run_demo.py` completed successfully after audit reproducibility fixes. |
-| `README.md` | Internet-X is identity-first and preserves `Name -> Identity -> Locator -> Path` | Partially supported | `Name -> Identity -> Locator` is real in code through `JSONDirectory` and `JSONLocatorRegistry`; `Path` remains architectural only and is documented as out of scope. |
+| `README.md` | Internet-X is identity-first and preserves `Name -> Identity -> Locator -> Path` | Partially supported | `Name -> Identity -> Locator` is real in code through the authenticated control-plane service; `Path` remains architectural only and is documented as out of scope. |
 | `README.md` | Real classical authenticated and encrypted flows | Supported by code and test evidence | Code uses Ed25519, X25519, HKDF-SHA256, HMAC-SHA256, and ChaCha20-Poly1305 in `refimpl/crypto.py`; handshake and data tests pass. |
 | `README.md` | Authenticated locator rebinding | Supported by code and test evidence | Demo and tests show `LOCATOR_UPDATE` and `LOCATOR_UPDATE_ACK` on the same `session_id` and `flow_id`, followed by successful post-update `DATA`. |
 | `README.md` | Post-quantum support is simulated only | Supported by code and test evidence | `SIMULATED_PQ_MODE = "simulated-ml-kem-768"`; no ML-KEM or ML-DSA library use exists. |
-| `README.md` | No long-running resolver daemon in the repo | Supported by code and test evidence | The implementation uses file-backed JSON abstractions only; audit kept the wording explicit. |
+| `README.md` | Repo includes a minimally real authenticated control-plane service | Supported by code and test evidence | `refimpl/controlplane.py` and `refimpl/controlplane_service.py` implement a live network service; demo and tests use it as the authoritative runtime control plane. |
 | `spec/ixp-v0.2.md` | Packet-by-packet runnable reference profile | Supported by code and test evidence | Packet envelope, handshake messages, and locator update are implemented and exercised. |
 | `spec/ixp-v0.2.md` | Timeout and retransmission behavior is defined | Partially supported | Control-path retry is real for `INIT` and `KEM_EXCHANGE`; application `DATA` is not automatically retried by the client. Spec wording was tightened to match code. |
 | `spec/handshake.md` | Duplicate data does not duplicate delivery | Supported by code and test evidence | Server caches `DATA_ACK` by client sequence and resends it on exact duplicate packets; replay test now sends the same `DATA` packet twice. |
 | `spec/state-machine.md` | Flow continuity survives authenticated locator rebinding | Supported by code and test evidence | Demo traces show one handshake, then `LOCATOR_UPDATE`, then post-update `DATA` on the same logical flow. |
-| `spec/security.md` | Real classical security baseline, simulated PQ, local trusted directory/registry | Supported by code and test evidence | Matches current implementation and observed behavior. |
+| `spec/security.md` | Real classical security baseline, simulated PQ, and a minimal locally trusted control plane | Supported by code and test evidence | Matches current implementation and observed behavior. |
 | `refimpl/README.md` | Reference implementation demonstrates explicit flow establishment and authenticated locator update | Supported by code and test evidence | Verified in tests and demo. |
-| `refimpl/README.md` | No production-grade mapping infrastructure | Supported by code and test evidence | Only local JSON-backed mapping exists. |
+| `refimpl/README.md` | Mapping infrastructure is live but minimal rather than production-grade | Supported by code and test evidence | Authenticated writes and networked resolution are real; federation, hardening, and external trust bootstrapping are absent. |
 | `scripts/run_demo.py` | End-to-end demo is runnable | Supported by code and test evidence | Audit fixed a reproducibility issue by removing the hardcoded server port assumption. |
 | `scripts/run_demo.py` | Demo proves rebinding rather than reconnect | Supported by code and test evidence | Demo trace contains one `INIT`, one `AUTH`, one `LOCATOR_UPDATE`, and post-update `DATA` with unchanged `session_id` and `flow_id`. |
 | `scripts/benchmark.py` | Local benchmark harness exists | Supported by code and test evidence | Benchmark ran successfully after the same fixed-port reproducibility issue was removed. |
@@ -45,10 +45,11 @@ Classification labels:
 
 ### Implemented and supported
 
-- Identity-derived `NodeID` and explicit `Name -> Identity -> Locator` lookup chain.
+- Identity-derived `NodeID` and explicit service-backed `Name -> Identity -> Locator` lookup chain.
 - `INIT -> INIT_ACK -> KEM_EXCHANGE -> AUTH -> DATA` flow establishment.
 - AEAD-protected application data.
 - Authenticated locator update with signature and MAC.
+- Authenticated control-plane registration and locator update with lease expiry and stale-update rejection.
 - Duplicate `DATA` suppression with cached `DATA_ACK` replay.
 - Downgrade/tamper detection through transcript-bound handshake material.
 - Minimal reproducible demo, test suite, benchmark harness, and bounded invariant checker.
@@ -58,12 +59,12 @@ Classification labels:
 - Retries are built in for the control path, not for general application `DATA` retransmission.
 - Replay handling is meaningful for duplicate data sequence numbers, but not a complete anti-replay story for all traffic classes.
 - Mobility is demonstrated at the overlay UDP flow layer, not as a production mobility subsystem.
-- The resolver/control plane is necessary to the model, but the current implementation is a local JSON abstraction rather than a live service.
+- The control plane is real enough for MVP-N1, but it remains a single local-trust service rather than a federated or hardened subsystem.
 
 ### Conceptual only
 
 - `Path` selection beyond locator resolution.
-- Global or authenticated directory / locator service.
+- Global or federated directory / locator service.
 - Real post-quantum cryptography.
 - Production deployment hardening such as anti-DoS, NAT traversal, and congestion control.
 
@@ -71,9 +72,9 @@ Classification labels:
 
 No material unsupported claim remains in the audited source set. The audit downgraded or clarified the places that were previously too loose:
 
-- quickstart and CLI docs now state the dependency-install step and the file-backed control-plane boundary;
+- quickstart and CLI docs now state the dependency-install step and the live control-plane boundary;
 - spec text now matches actual duplicate-`DATA` behavior and control-path retransmission scope;
-- audited runtime scripts no longer depend on a fixed UDP port being free.
+- audited runtime scripts no longer depend on fixed UDP/TCP ports being free.
 
 ## Crypto Honesty Summary
 
@@ -90,8 +91,8 @@ What is simulated:
 
 What is architectural intent only:
 - Replacing the simulated mode with a real ML-KEM / ML-DSA backend.
-- Deployment-grade control-plane infrastructure.
+- Deployment-grade control-plane federation and hardening.
 
 ## Bottom Line
 
-The current claim surface is technically honest after the audit fixes. The repository supports a runnable research demo with a real classical baseline, authenticated rebinding, and a clearly bounded simulated PQ transition hook. It does not support stronger claims than that.
+The current claim surface is technically honest after the audit and remediation fixes. The repository supports a runnable MVP-N1-scale reference package with a real classical baseline, authenticated rebinding, a minimally real authenticated control plane, and a clearly bounded simulated PQ transition hook. It does not support stronger claims than that.

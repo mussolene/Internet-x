@@ -10,6 +10,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from urllib import request
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -24,6 +25,27 @@ def reserve_udp_port() -> int:
     port = int(sock.getsockname()[1])
     sock.close()
     return port
+
+
+def reserve_tcp_port() -> int:
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.bind(("127.0.0.1", 0))
+    port = int(sock.getsockname()[1])
+    sock.close()
+    return port
+
+
+def wait_for_control_plane(base_url: str, timeout: float = 5.0) -> None:
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        try:
+            with request.urlopen(f"{base_url}/v1/health", timeout=0.5) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+                if payload.get("status") == "ok":
+                    return
+        except Exception:
+            time.sleep(0.1)
+    raise RuntimeError(f"Control plane did not become ready at {base_url}")
 
 
 def extract_json_block(output: str) -> dict[str, object]:
@@ -43,42 +65,48 @@ def main(iterations: int = 5) -> None:
         server_identity = identities / "server.json"
         client1_identity = identities / "client1.json"
         client2_identity = identities / "client2.json"
+        control_plane_port = reserve_tcp_port()
+        control_plane_url = f"http://127.0.0.1:{control_plane_port}"
         server_port = reserve_udp_port()
         client1_port = reserve_udp_port()
         client2_port = reserve_udp_port()
         run([sys.executable, "-m", "refimpl.keygen", "--name", "server.bench", "--locator", f"udp://127.0.0.1:{server_port}", "--out", str(server_identity)])
         run([sys.executable, "-m", "refimpl.keygen", "--name", "client1.bench", "--locator", f"udp://127.0.0.1:{client1_port}", "--out", str(client1_identity)])
         run([sys.executable, "-m", "refimpl.keygen", "--name", "client2.bench", "--locator", f"udp://127.0.0.1:{client2_port}", "--out", str(client2_identity)])
-        server_data = json.loads(server_identity.read_text())
-        client1_data = json.loads(client1_identity.read_text())
-        client2_data = json.loads(client2_identity.read_text())
-        directory = tmpdir / "directory.json"
-        registry = tmpdir / "registry.json"
-        directory.write_text(json.dumps({
-            "entries": {
-                name: {
-                    "name": data["name"],
-                    "node_id": data["node_id"],
-                    "algorithm_id": data["algorithm_id"],
-                    "signing_public_key": data["signing_public_key"],
-                    "locator": data["locator"],
-                }
-                for name, data in {
-                    server_data["name"]: server_data,
-                    client1_data["name"]: client1_data,
-                    client2_data["name"]: client2_data,
-                }.items()
-            }
-        }, indent=2, sort_keys=True) + "\n")
-        registry.write_text(json.dumps({
-            "locators": {
-                data["node_id"]: {"locator": data["locator"], "epoch": 1, "source": "benchmark"}
-                for data in (server_data, client1_data, client2_data)
-            }
-        }, indent=2, sort_keys=True) + "\n")
+        control_plane = subprocess.Popen(
+            [
+                sys.executable,
+                "-m",
+                "refimpl.controlplane_service",
+                "--host",
+                "127.0.0.1",
+                "--port",
+                str(control_plane_port),
+                "--trace",
+                str(tmpdir / "control-plane.log"),
+                "--state-file",
+                str(tmpdir / "control-plane-state.json"),
+            ],
+            cwd=ROOT,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.STDOUT,
+        )
+        wait_for_control_plane(control_plane_url)
 
         server = subprocess.Popen(
-            [sys.executable, "-m", "refimpl.server", "--identity", str(server_identity), "--port", str(server_port), "--trace", str(tmpdir / "server.log")],
+            [
+                sys.executable,
+                "-m",
+                "refimpl.server",
+                "--identity",
+                str(server_identity),
+                "--control-plane",
+                control_plane_url,
+                "--port",
+                str(server_port),
+                "--trace",
+                str(tmpdir / "server.log"),
+            ],
             cwd=ROOT,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.STDOUT,
@@ -94,10 +122,8 @@ def main(iterations: int = 5) -> None:
                         "refimpl.client",
                         "--identity",
                         str(client_identity),
-                        "--directory",
-                        str(directory),
-                        "--registry",
-                        str(registry),
+                        "--control-plane",
+                        control_plane_url,
                         "--peer-name",
                         "server.bench",
                         "--message",
@@ -117,6 +143,8 @@ def main(iterations: int = 5) -> None:
         finally:
             server.terminate()
             server.wait(timeout=3)
+            control_plane.terminate()
+            control_plane.wait(timeout=3)
 
     summary = {
         "runs": len(results),

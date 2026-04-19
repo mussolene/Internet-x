@@ -5,33 +5,23 @@ import time
 import pytest
 
 from refimpl import crypto
-from refimpl.directory import JSONDirectory, JSONLocatorRegistry
+from refimpl.controlplane import build_locator_update_request
 from refimpl.engine import InternetXClient, InternetXServer
 from refimpl.identity import NodeIdentity
 from refimpl.packet import AUTH, ERROR, INIT_ACK, LOCATOR_UPDATE, build_packet, decode_packet
-from tests.helpers import make_udp_locator, reserve_udp_port, udp_port
+from tests.helpers import make_udp_locator, reserve_udp_port, start_control_plane, stop_control_plane, udp_port
 
 
 def fixture(tmp_path: Path):
     server_identity = NodeIdentity.generate(name="server.test", locator=make_udp_locator(reserve_udp_port()))
     client_identity = NodeIdentity.generate(name="client.test", locator=make_udp_locator(reserve_udp_port()))
-    directory = JSONDirectory.load(tmp_path / "directory.json")
-    registry = JSONLocatorRegistry.load(tmp_path / "registry.json")
-    directory.register_identity(server_identity)
-    directory.register_identity(client_identity)
-    registry.register_locator(server_identity.node_id, server_identity.locator, source="test")
-    registry.register_locator(client_identity.node_id, client_identity.locator, source="test")
-    return server_identity, client_identity, directory, registry
+    service, control_plane_thread, control_plane = start_control_plane(tmp_path)
+    control_plane.register_identity(server_identity, locator=server_identity.locator, locator_version=1)
+    return server_identity, client_identity, service, control_plane_thread, control_plane
 
 
 def stop_server(server: InternetXServer, thread) -> None:
-    server.running = False
-    try:
-        poke = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        poke.sendto(b"{}", (server.host, server.port))
-        poke.close()
-    except OSError:
-        pass
+    server.stop()
     thread.join(timeout=2)
 
 
@@ -43,27 +33,30 @@ def establish_flow(client: InternetXClient) -> None:
 
 
 def test_locator_update_changes_server_view(tmp_path: Path) -> None:
-    server_identity, client_identity, directory, registry = fixture(tmp_path)
-    server = InternetXServer(server_identity, port=udp_port(server_identity.locator))
+    server_identity, client_identity, service, control_plane_thread, control_plane = fixture(tmp_path)
+    server = InternetXServer(server_identity, control_plane=control_plane, port=udp_port(server_identity.locator))
     thread = server.serve_in_thread()
     time.sleep(0.2)
     try:
-        client = InternetXClient(client_identity, peer_name="server.test", directory=directory, registry=registry)
+        client = InternetXClient(client_identity, peer_name="server.test", control_plane=control_plane)
         original_locator = client.identity.locator
-        client.run("before move", perform_locator_update=True)
+        result = client.run("before move", perform_locator_update=True)
         session = server.sessions[client.session_id]
         assert session.client_locator != original_locator
+        resolved_locator = control_plane.resolve_locator(client.identity.node_id)
+        assert resolved_locator["locator"] == result["locator_update_ack"]["active_locator"]
     finally:
         stop_server(server, thread)
+        stop_control_plane(service, control_plane_thread)
 
 
 def test_stale_locator_update_counter_is_rejected(tmp_path: Path) -> None:
-    server_identity, client_identity, directory, registry = fixture(tmp_path)
-    server = InternetXServer(server_identity, port=udp_port(server_identity.locator))
+    server_identity, client_identity, service, control_plane_thread, control_plane = fixture(tmp_path)
+    server = InternetXServer(server_identity, control_plane=control_plane, port=udp_port(server_identity.locator))
     thread = server.serve_in_thread()
     time.sleep(0.2)
     try:
-        client = InternetXClient(client_identity, peer_name="server.test", directory=directory, registry=registry)
+        client = InternetXClient(client_identity, peer_name="server.test", control_plane=control_plane)
         establish_flow(client)
         original_locator = client.identity.locator
         update_result = client.perform_locator_update()
@@ -100,3 +93,21 @@ def test_stale_locator_update_counter_is_rejected(tmp_path: Path) -> None:
         client.sock.close()
     finally:
         stop_server(server, thread)
+        stop_control_plane(service, control_plane_thread)
+
+
+def test_control_plane_rejects_invalid_locator_update_signature(tmp_path: Path) -> None:
+    server_identity, client_identity, service, control_plane_thread, control_plane = fixture(tmp_path)
+    try:
+        control_plane.register_identity(client_identity, locator=client_identity.locator, locator_version=1)
+        tampered = build_locator_update_request(
+            client_identity,
+            previous_locator=client_identity.locator,
+            new_locator=make_udp_locator(reserve_udp_port()),
+            locator_version=2,
+        )
+        tampered["signature"] = tampered["signature"][:-4] + "AAAA"
+        with pytest.raises(Exception):
+            control_plane._request("POST", "/v1/update-locator", payload=tampered)
+    finally:
+        stop_control_plane(service, control_plane_thread)

@@ -13,7 +13,7 @@ In scope:
 Out of scope:
 
 - endpoint compromise
-- malicious directory or registry infrastructure
+- malicious or fully compromised control-plane infrastructure
 - large-scale denial-of-service resistance
 - side-channel resistance
 - traffic analysis and metadata privacy against a global observer
@@ -29,6 +29,7 @@ Out of scope:
 ## Mechanisms
 
 - Ed25519 signatures authenticate handshake and locator update control fields.
+- Ed25519 signatures authenticate control-plane registration and control-plane locator updates.
 - X25519 plus HKDF-SHA256 derives the base session secret.
 - ChaCha20-Poly1305 protects application data.
 - sequence numbers provide replay protection for data packets.
@@ -39,4 +40,4 @@ Out of scope:
 - common headers remain visible, which leaks metadata
 - no production anti-DoS measures are implemented
 - PQ support is architectural and simulated, not real
-- the directory and registry are trusted local abstractions in the current reference package
+- the control plane is a single minimal service and remains a local trust anchor for availability and admission policy

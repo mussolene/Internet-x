@@ -12,26 +12,28 @@ python3 scripts/run_demo.py
 
 The demo script:
 1. generates fresh server and client identities;
-2. writes a local JSON directory and locator registry;
-3. starts the UDP server;
-4. runs a client handshake and encrypted data exchange;
+2. starts a separate control-plane service process;
+3. starts the UDP server, which registers its `Name`, `NodeID`, and locator with the control plane;
+4. runs a client that registers itself, resolves `server.demo` through the service, and completes handshake and encrypted data exchange;
 5. performs `LOCATOR_UPDATE` from a new client socket/port;
-6. sends another encrypted `DATA` packet after the locator change.
+6. updates the control-plane locator record for the same client identity with a higher locator version;
+7. sends another encrypted `DATA` packet after the locator change.
 
 Important boundary:
-- There is no standalone resolver or locator-service process to start.
-- The demo uses file-backed `JSONDirectory` and `JSONLocatorRegistry` artifacts.
-- That is sufficient for the repository's research-demo claim, but it is not a deployment-grade control plane.
+- The control plane is real enough to clear the old nominal-JSON blocker, but it remains a single minimal service under local trust assumptions.
+- Authenticated writes are real; global discovery, federation, and production hardening are still out of scope.
 
 ## Validation Checklist
 
 | Check | Result | Evidence |
 | --- | --- | --- |
-| Directory / registry artifacts exist | PASS | `scripts/run_demo.py` generated `examples/demo-directory.json` and `examples/demo-registry.json` before running the client |
-| Name resolution works | PASS | Client resolves `server.demo` via the JSON directory and registry and completes the handshake |
+| Control-plane service starts | PASS | `scripts/run_demo.py` starts `refimpl.controlplane_service` and waits for `/v1/health` |
+| Name resolution works | PASS | Client resolves `server.demo` through the control-plane `Name -> Identity` API before the handshake |
+| NodeID to locator resolution works | PASS | Client resolves the server locator through the control-plane `NodeID -> Locator` API before sending `INIT` |
 | Handshake succeeds | PASS | Demo output includes `INIT`, `INIT_ACK`, `KEM_EXCHANGE`, `AUTH` |
 | Encrypted data exchange succeeds | PASS | Demo output includes `DATA` and `DATA_ACK` with delivered status |
 | Locator update occurs | PASS | Demo output includes `LOCATOR_UPDATE` and `LOCATOR_UPDATE_ACK` |
+| Control-plane locator update occurs | PASS | Demo output reports `control_plane_locator_version = 2` and `examples/demo-control-plane-state.json` reflects the new locator |
 | Flow continues after locator update | PASS | Demo output includes a second `DATA` and `DATA_ACK` after locator update |
 | Demo secretly reconnects | FAIL for reconnect hypothesis | Trace shows only one `INIT` and one `AUTH`; no second handshake occurs after `LOCATOR_UPDATE` |
 
@@ -39,17 +41,17 @@ Important boundary:
 
 The demo performs real flow-preserving locator rebinding within the scope of the reference overlay profile.
 
-Evidence from the audited trace:
-- the same `session_id` appears before and after locator update: `3a37d4e8b4e3...`
-- the same `flow_id` appears before and after locator update: `c63d448ef439...`
+Evidence from the current validated run:
+- the client resolved `server.demo` through the control-plane service before sending `INIT`
 - server trace contains exactly one `INIT`, one `KEM_EXCHANGE`, one `AUTH`, one `LOCATOR_UPDATE`, and post-update `DATA`
 - the post-update `DATA` packet carries `sequence=1`, which is continuation of the established flow rather than a new flow bootstrap
-- the `LOCATOR_UPDATE_ACK` returns the new active locator and the next `DATA` is accepted on that locator
+- the `LOCATOR_UPDATE_ACK` returns the new active locator and the control-plane update reports the same locator at version `2`
+- the next `DATA` is accepted on the new locator without a second handshake
 
 ## What This Does Not Prove
 
 The demo does not prove:
-- a production resolver or locator service;
+- a federated or hardened resolver/control-plane service;
 - path validation beyond the current session-authenticated overlay exchange;
 - NAT traversal or Internet-scale mobility robustness;
 - real post-quantum security.

@@ -19,23 +19,26 @@ Status date: April 19, 2026.
 
 ## Maturity Assessment
 
-Internet-X is now a coherent research package with a runnable reference overlay and clear documentation. It is still a research artifact rather than a deployment candidate.
+Internet-X is now a coherent MVP-N1-scale reference package with a runnable reference overlay, a minimally real authenticated control plane, and clear documentation. It is still experimental rather than production-ready.
+
+Current maturity verdict: `MVP-N1 READY`
 
 Maturity level by layer:
 
 - Architecture: medium
 - Specification precision: medium-high
 - Reference implementation: medium
+- Control-plane maturity: medium
 - Evaluation depth: medium-low
 - Formal assurance: low-medium
-- Operational readiness: low
+- Operational readiness: low-medium
 
 ## Strong Claim Surface
 
 Claims the repository now supports:
 
 - Internet-X is a technically credible identity-first overlay architecture.
-- The repository contains a working reference implementation that binds stable identity to session state and supports authenticated locator update.
+- The repository contains a working reference implementation that binds stable identity to session state, supports authenticated locator update, and uses a minimally real authenticated control plane for registration and resolution.
 - The design is a strong design point when the goals are explicit identity, inspectable control semantics, overlay deployability, and crypto agility.
 
 Claims the repository does not support:

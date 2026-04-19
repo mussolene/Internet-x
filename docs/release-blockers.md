@@ -10,32 +10,32 @@ This file uses the repository's requested severity labels:
 
 ## P0
 
-1. The control plane is still only a local JSON directory and locator registry, not a minimally real multi-process or authenticated mapping service.
-Reason: the core `Name -> Identity -> Locator` chain exists, but only as local artifacts prepared for demos and tests. That is acceptable for a research demo. It is not enough to label the repository `MVP-N1 READY` without stretching the meaning of MVP.
+No open P0 blockers after the control-plane remediation pass.
 
 ## P1
 
 No open P1 blockers after audit fixes.
 
-Resolved during audit:
+Resolved during the audit and remediation passes:
 - demo and benchmark scripts no longer assume a fixed UDP port is free;
-- quickstart now includes dependency installation and the file-backed control-plane boundary;
-- spec wording now matches actual duplicate-`DATA` and retransmission behavior.
+- quickstart now includes dependency installation and the live control-plane boundary;
+- spec wording now matches actual duplicate-`DATA` and retransmission behavior;
+- the runtime and demo control plane are now backed by a separate authenticated service.
 
 ## P2
 
-1. The direct low-level CLI path is less turnkey than `make demo` because it still requires the user to prepare matching directory and registry files.
-2. The test suite is meaningful and now covers real replay and stale locator-update cases, but it remains a compact loopback suite rather than a broad adversarial campaign.
-3. Publication-quality claims depend on keeping the conservative framing intact; the repo should not drift back toward stronger maturity language.
+1. The control plane is intentionally central and minimal; it is suitable for MVP-N1 but not a hardened or federated deployment substrate.
+2. The test suite is meaningful and now covers authenticated control-plane behavior, but it remains a compact loopback suite rather than a broad adversarial campaign.
+3. Publication-quality claims depend on keeping the conservative framing intact; the repo should not drift toward stronger production or novelty language.
 
 ## P3
 
 1. Replace the simulated PQ mode with a real ML-KEM / ML-DSA backend behind the current agility surface.
-2. Replace local JSON directory and registry artifacts with an authenticated control-plane service if the project moves beyond research-demo scope.
+2. Add lease refresh, persistence hardening, and tighter admission policy if the control plane moves beyond local-trust MVP scope.
 3. Add broader network-environment testing such as loss, reordering, and NAT traversal if operational claims are ever desired.
 4. Implement the `Path` layer more concretely if the architecture claim is expanded beyond the current overlay reference profile.
 
 ## Summary
 
 - Research-demo release blocker status: no open blockers.
-- MVP-N1 release blocker status: blocked by the intentionally minimal control-plane implementation.
+- MVP-N1 release blocker status: no open P0 blockers in the current repository state.

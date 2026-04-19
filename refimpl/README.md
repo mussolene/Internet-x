@@ -5,6 +5,7 @@ The `refimpl/` package is the current runnable baseline for Internet-X.
 ## What It Demonstrates
 
 - stable identity independent of locator
+- live authenticated control-plane service
 - explicit flow establishment
 - real classical authenticated session establishment
 - encrypted data packets
@@ -15,7 +16,7 @@ The `refimpl/` package is the current runnable baseline for Internet-X.
 ## What It Does Not Demonstrate
 
 - real ML-KEM or ML-DSA
-- production-grade mapping infrastructure
+- federated or hardened mapping infrastructure
 - congestion control or NAT traversal
 - kernel or socket API integration
 
@@ -46,4 +47,10 @@ Run demo:
 make demo
 ```
 
-Note: the current reference implementation uses file-backed directory and locator-registry inputs. It does not include a separate resolver service process.
+Run the control plane directly:
+
+```bash
+python3 -m refimpl.controlplane_service --port 9081
+```
+
+The current reference implementation includes a separate resolver/control-plane service process. It is intentionally minimal and central: authenticated writes are real, but there is no federation, external PKI, or production hardening.
