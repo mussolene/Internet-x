@@ -1,91 +1,31 @@
-# Internet-X Packet Examples
+# Packet Examples
 
-These examples follow the educational JSON prototype, not a production wire format.
-
-## Common Envelope
-
-Every packet uses:
-
-```json
-{
-  "version": 1,
-  "packet_type": "INIT",
-  "flags": [],
-  "header_length": 239,
-  "flow_id": null,
-  "source_node_id": "<source NodeID>",
-  "destination_node_id": "<destination NodeID>",
-  "locator_hint": "udp://localhost:8080",
-  "payload": {}
-}
-```
+These examples reflect the v0.2 reference implementation and use simplified placeholders.
 
 ## INIT
 
 ```json
 {
-  "version": 1,
+  "version": 2,
   "packet_type": "INIT",
   "flags": [],
-  "header_length": 239,
+  "header_length": 310,
+  "session_id": "<session-id>",
   "flow_id": null,
-  "source_node_id": "<client NodeID>",
-  "destination_node_id": "<server NodeID>",
-  "locator_hint": "udp://localhost:8080",
+  "sequence": null,
+  "source_node_id": "<client-node-id>",
+  "destination_node_id": "<server-node-id>",
+  "locator_hint": "udp://127.0.0.1:10080",
   "payload": {
-    "session_id": "7c942c5f7af7454f9c8458f29242a0ea",
     "sender_name": "client.demo",
-    "algorithm_id": "hybrid-simulated",
-    "supported_modes": ["hybrid-simulated", "classical-simulated"],
-    "client_nonce": "b6ab18e63e214c83956d0f5620ef557a",
-    "client_key_material": "simulated-client-ephemeral-key",
-    "note": "Educational INIT packet only."
-  }
-}
-```
-
-## INIT_ACK
-
-```json
-{
-  "version": 1,
-  "packet_type": "INIT_ACK",
-  "flags": [],
-  "header_length": 243,
-  "flow_id": null,
-  "source_node_id": "<server NodeID>",
-  "destination_node_id": "<client NodeID>",
-  "locator_hint": "udp://localhost:8080",
-  "payload": {
-    "session_id": "7c942c5f7af7454f9c8458f29242a0ea",
-    "selected_mode": "hybrid-simulated",
-    "server_nonce": "d940f693dc0e4cb4b446decefc54f1d4",
-    "server_key_material": "simulated-server-ephemeral-key",
-    "transcript_hash": "<hash of transcript through INIT>",
-    "note": "Educational INIT_ACK packet only."
-  }
-}
-```
-
-## KEM_EXCHANGE
-
-```json
-{
-  "version": 1,
-  "packet_type": "KEM_EXCHANGE",
-  "flags": [],
-  "header_length": 248,
-  "flow_id": null,
-  "source_node_id": "<client NodeID>",
-  "destination_node_id": "<server NodeID>",
-  "locator_hint": "udp://localhost:8080",
-  "payload": {
-    "session_id": "7c942c5f7af7454f9c8458f29242a0ea",
-    "encapsulated_key_material": "simulated-kem-ciphertext",
-    "classical_share": "simulated-classical-share",
-    "pq_share": "simulated-pq-share",
-    "transcript_hash": "<hash of transcript through INIT_ACK>",
-    "note": "Simulated KEM exchange material for architecture testing."
+    "identity_algorithm": "ed25519+x25519",
+    "signing_public_key": "<client-signing-public-key-b64>",
+    "client_ephemeral_key": "<client-ephemeral-x25519-pub-b64>",
+    "supported_suites": ["x25519+ed25519+chacha20poly1305"],
+    "supported_pq_modes": ["simulated-ml-kem-768", "none"],
+    "allow_classical_fallback": true,
+    "client_nonce": "<nonce>",
+    "note": "Client requests identity-bound flow establishment."
   }
 }
 ```
@@ -94,21 +34,25 @@ Every packet uses:
 
 ```json
 {
-  "version": 1,
+  "version": 2,
   "packet_type": "AUTH",
   "flags": [],
-  "header_length": 292,
-  "flow_id": "<derived FlowID>",
-  "source_node_id": "<server NodeID>",
-  "destination_node_id": "<client NodeID>",
-  "locator_hint": "udp://localhost:8080",
+  "header_length": 300,
+  "session_id": "<session-id>",
+  "flow_id": "<flow-id>",
+  "sequence": null,
+  "source_node_id": "<server-node-id>",
+  "destination_node_id": "<client-node-id>",
+  "locator_hint": "udp://127.0.0.1:9080",
   "payload": {
-    "session_id": "7c942c5f7af7454f9c8458f29242a0ea",
     "auth_result": "accepted",
-    "flow_id": "<derived FlowID>",
-    "transcript_hash": "<hash of transcript through KEM_EXCHANGE>",
-    "auth_proof": "simulated-server-auth-binding",
-    "note": "Educational AUTH packet only; no real cryptographic assurance."
+    "selected_suite": "x25519+ed25519+chacha20poly1305",
+    "selected_pq_mode": "simulated-ml-kem-768",
+    "fallback_used": false,
+    "transcript_hash": "<sha256>",
+    "server_signature": "<ed25519-signature-b64>",
+    "key_confirmation": "<hmac-sha256-hex>",
+    "note": "PQ mode remains simulated if selected; baseline authentication and AEAD are real classical crypto."
   }
 }
 ```
@@ -117,41 +61,19 @@ Every packet uses:
 
 ```json
 {
-  "version": 1,
+  "version": 2,
   "packet_type": "DATA",
   "flags": [],
-  "header_length": 286,
-  "flow_id": "<derived FlowID>",
-  "source_node_id": "<client NodeID>",
-  "destination_node_id": "<server NodeID>",
-  "locator_hint": "udp://localhost:8080",
+  "header_length": 220,
+  "session_id": "<session-id>",
+  "flow_id": "<flow-id>",
+  "sequence": 0,
+  "source_node_id": "<client-node-id>",
+  "destination_node_id": "<server-node-id>",
+  "locator_hint": "udp://127.0.0.1:10080",
   "payload": {
-    "session_id": "7c942c5f7af7454f9c8458f29242a0ea",
-    "content": "Hello from the educational Internet-X client.",
-    "transcript_hash": "<hash of transcript through AUTH>"
-  }
-}
-```
-
-## DATA_ACK
-
-```json
-{
-  "version": 1,
-  "packet_type": "DATA_ACK",
-  "flags": [],
-  "header_length": 296,
-  "flow_id": "<derived FlowID>",
-  "source_node_id": "<server NodeID>",
-  "destination_node_id": "<client NodeID>",
-  "locator_hint": "udp://localhost:8080",
-  "payload": {
-    "session_id": "7c942c5f7af7454f9c8458f29242a0ea",
-    "status": "delivered",
-    "flow_id": "<derived FlowID>",
-    "received_bytes": 45,
-    "transcript_hash": "<hash of transcript through DATA>",
-    "note": "Educational DATA_ACK packet only."
+    "nonce": "<nonce-b64>",
+    "ciphertext": "<aead-ciphertext-b64>"
   }
 }
 ```

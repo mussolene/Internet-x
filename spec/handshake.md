@@ -1,348 +1,166 @@
-# Internet-X Educational Handshake Reference
+# Handshake
 
-This document is the packet-by-packet handshake reference for the educational prototype in this repository. It describes the actual JSON packet format used by `prototype/client.py` and `prototype/server.py`.
+The reference handshake preserves the required five phases:
 
-It does not describe a production handshake. It does not claim real post-quantum security. Where future architecture could carry richer material such as real signatures or KEM ciphertexts, those items are explicitly marked as future extensions.
+1. `INIT`
+2. `INIT_ACK`
+3. `KEM_EXCHANGE`
+4. `AUTH`
+5. `DATA`
 
-## 1. Common Packet Envelope
+`DATA_ACK` acknowledges application data after the five-phase establishment sequence. Locator migration is handled through separate `LOCATOR_UPDATE` control packets.
 
-Every prototype packet is a JSON object with these top-level fields:
+## Phase 1: INIT
 
-- `version`: protocol version integer
-- `packet_type`: one of `INIT`, `INIT_ACK`, `KEM_EXCHANGE`, `AUTH`, `DATA`, `DATA_ACK`, `ERROR`
-- `flags`: array of textual flags, usually empty in the prototype
-- `header_length`: advisory header-length integer for the educational format
-- `flow_id`: `null` before flow establishment, then a SHA-256-derived string
-- `source_node_id`: sender `NodeID`
-- `destination_node_id`: receiver `NodeID`
-- `locator_hint`: sender reachability hint, represented as a string in the prototype
-- `payload`: phase-specific JSON object
+Purpose:
 
-The transcript hash is maintained locally by each endpoint over the ordered sequence of JSON packets. When a packet contains a `payload.transcript_hash` field, that value represents the sender's view of the transcript before the current packet is appended.
+- announce client identity material
+- start the transcript
+- advertise supported classical suite and PQ mode choices
 
-`FlowID` is not established in `INIT` or `INIT_ACK`. It becomes meaningful after `AUTH`.
+Payload fields:
 
-## 2. Phase: INIT
-
-### Purpose
-
-`INIT` starts a session and announces the initiating identity, locator hint, and supported handshake modes.
-
-### Sender Behavior
-
-The client:
-
-- creates a fresh `session_id`
-- sends its stable `source_node_id`
-- includes its current locator hint
-- announces supported modes such as `hybrid-simulated` and `classical-simulated`
-- sends simulated ephemeral or public material for educational tracing
-
-### Receiver Behavior
-
-The server:
-
-- validates that the packet is well-formed JSON
-- records the `session_id`
-- stores the client `NodeID` and locator hint for the session
-- starts the transcript with the `INIT` packet
-- chooses a response mode for `INIT_ACK`
-
-### Expected Fields
-
-Top-level:
-
-- `packet_type = "INIT"`
-- `flow_id = null`
-
-Payload:
-
-- `session_id`
 - `sender_name`
-- `algorithm_id`
-- `supported_modes`
+- `identity_algorithm`
+- `signing_public_key`
+- `client_ephemeral_key`
+- `supported_suites`
+- `supported_pq_modes`
+- `allow_classical_fallback`
 - `client_nonce`
-- `client_key_material`
 - `note`
 
-### Transcript Hash Impact
+Receiver behavior:
 
-`INIT` starts the transcript. The packet itself does not carry a `transcript_hash` field.
+- verify `NodeID` matches the advertised signing public key
+- select a mutually supported classical suite
+- either select `simulated-ml-kem-768` or fall back to `none` if allowed
 
-### Flow Establishment Impact
+## Phase 2: INIT_ACK
 
-No `FlowID` is established yet.
+Purpose:
 
-### Hybrid PQ/Classical Behavior
+- return server identity material
+- bind the response to the transcript containing `INIT`
+- advertise the selected suite and PQ mode
 
-The client advertises supported modes. In the prototype those are descriptive strings only.
+Payload fields:
 
-### Fallback Behavior
-
-If the packet is malformed or cannot be parsed, the server sends `ERROR` or drops the packet. If the preferred hybrid mode is not supported, the server may select `classical-simulated` in `INIT_ACK`.
-
-### Architectural Future Extension
-
-Future versions may attach real algorithm negotiation objects, certificates, or authenticated capability descriptors. Those are not required in the prototype.
-
-## 3. Phase: INIT_ACK
-
-### Purpose
-
-`INIT_ACK` acknowledges the session start and binds the server's response to the transcript containing `INIT`.
-
-### Sender Behavior
-
-The server:
-
-- looks up or creates session state for the received `session_id`
-- computes the transcript hash over the current transcript containing `INIT`
-- selects a handshake mode
-- returns simulated server key material
-
-### Receiver Behavior
-
-The client:
-
-- validates the matching `session_id`
-- records the selected mode
-- appends the packet to its transcript
-- prepares `KEM_EXCHANGE`
-
-### Expected Fields
-
-Top-level:
-
-- `packet_type = "INIT_ACK"`
-- `flow_id = null`
-
-Payload:
-
-- `session_id`
-- `selected_mode`
+- `sender_name`
+- `identity_algorithm`
+- `signing_public_key`
+- `server_ephemeral_key`
+- `server_pq_share` or `null`
+- `selected_suite`
+- `selected_pq_mode`
+- `fallback_used`
 - `server_nonce`
-- `server_key_material`
 - `transcript_hash`
 - `note`
 
-### Transcript Hash Impact
+Receiver behavior:
 
-`payload.transcript_hash` covers the transcript up to and including `INIT`.
+- verify `transcript_hash`
+- record selected suite and server ephemeral material
 
-### Flow Establishment Impact
+## Phase 3: KEM_EXCHANGE
 
-No `FlowID` is established yet.
+Purpose:
 
-### Hybrid PQ/Classical Behavior
+- prove possession of the client identity key
+- prove that the client sees the same transcript as the server
+- complete the material needed for the session secret
 
-The server indicates whether the educational session proceeds in `hybrid-simulated` or `classical-simulated` mode.
+Payload fields:
 
-### Fallback Behavior
-
-If the `session_id` is unknown or the packet cannot be matched to current state, the client aborts. If the server cannot support the advertised hybrid mode, it selects classical fallback.
-
-### Architectural Future Extension
-
-Future versions may carry server capabilities, signature suites, or KEM preferences. Those are not present in the prototype.
-
-## 4. Phase: KEM_EXCHANGE
-
-### Purpose
-
-`KEM_EXCHANGE` carries simulated key-establishment material and binds the client to the transcript observed so far.
-
-### Sender Behavior
-
-The client:
-
-- computes the transcript hash over `INIT` and `INIT_ACK`
-- includes simulated classical and post-quantum share placeholders
-- sends the current `session_id`
-
-### Receiver Behavior
-
-The server:
-
-- validates the `session_id`
-- checks that `payload.transcript_hash` matches its local transcript view
-- appends the packet to the transcript
-- derives a provisional authenticated flow context
-- replies with `AUTH`
-
-### Expected Fields
-
-Top-level:
-
-- `packet_type = "KEM_EXCHANGE"`
-- `flow_id = null`
-
-Payload:
-
-- `session_id`
-- `encapsulated_key_material`
-- `classical_share`
-- `pq_share`
 - `transcript_hash`
-- `note`
+- `client_pq_share` or `null`
+- `client_signature`
+- `key_confirmation`
 
-### Transcript Hash Impact
+Receiver behavior:
 
-`payload.transcript_hash` covers the transcript through `INIT_ACK`, before `KEM_EXCHANGE` is appended.
+- verify transcript hash against local state
+- derive the mixed secret from X25519 and, if selected, simulated PQ shares
+- verify client signature and handshake MAC
 
-### Flow Establishment Impact
+## Phase 4: AUTH
 
-No final `FlowID` is exposed in this packet, but the material needed to derive flow state is now available to the receiver.
+Purpose:
 
-### Hybrid PQ/Classical Behavior
+- publish the authenticated `FlowID`
+- prove server possession of the server identity key and handshake keys
 
-The packet carries placeholders for both a classical share and a post-quantum share. In the prototype these are strings and must be understood as simulation only.
+Payload fields:
 
-### Fallback Behavior
-
-If transcript binding fails, the receiver sends `ERROR`. If hybrid mode is unavailable, the server may ignore the post-quantum placeholder and continue in classical fallback while preserving the packet phase name.
-
-### Architectural Future Extension
-
-A fuller architecture could carry real KEM ciphertexts or hybrid composition structures. Those are intentionally not part of the educational prototype.
-
-## 5. Phase: AUTH
-
-### Purpose
-
-`AUTH` confirms that the server accepts the session and publishes the derived `FlowID` for subsequent data packets.
-
-### Sender Behavior
-
-The server:
-
-- computes the transcript hash over `INIT`, `INIT_ACK`, and `KEM_EXCHANGE`
-- derives a `FlowID` from session and transcript context
-- sends a simulated authentication proof and the selected `FlowID`
-
-### Receiver Behavior
-
-The client:
-
-- validates the `session_id`
-- records the returned `FlowID`
-- appends the packet to the transcript
-- uses the `FlowID` when sending `DATA`
-
-### Expected Fields
-
-Top-level:
-
-- `packet_type = "AUTH"`
-- `flow_id` set to the new `FlowID`
-
-Payload:
-
-- `session_id`
 - `auth_result`
-- `flow_id`
+- `selected_suite`
+- `selected_pq_mode`
+- `fallback_used`
 - `transcript_hash`
-- `auth_proof`
+- `server_signature`
+- `key_confirmation`
 - `note`
 
-### Transcript Hash Impact
+Receiver behavior:
 
-`payload.transcript_hash` covers the transcript through `KEM_EXCHANGE`, before `AUTH` is appended.
+- verify transcript hash through `KEM_EXCHANGE`
+- verify server signature and handshake MAC
+- accept `flow_id`
 
-### Flow Establishment Impact
+## Phase 5: DATA
 
-`AUTH` establishes the flow context used by `DATA` and `DATA_ACK`.
+Purpose:
 
-### Hybrid PQ/Classical Behavior
+- send encrypted application data on the established flow
 
-The authentication proof is simulated, but the phase exists to represent where a real hybrid authentication result would become binding.
+Header requirements:
 
-### Fallback Behavior
+- `flow_id` is mandatory
+- `sequence` is mandatory and monotonic per sender
 
-If transcript verification fails or the session is unknown, the server sends `ERROR`. If the selected mode is classical fallback, the `FlowID` is still derived, but the packet note makes clear that the educational session is not a real secure channel.
+Payload fields:
 
-### Architectural Future Extension
+- `nonce`
+- `ciphertext`
 
-Future versions could carry real signatures, certificates, or multi-algorithm authentication proofs. Those do not exist in the prototype.
+Receiver behavior:
 
-## 6. Phase: DATA
+- reject packets with an unexpected sequence from an unauthenticated flow state
+- handle an exact duplicate of an already acknowledged sequence idempotently by re-sending the cached `DATA_ACK` without re-delivering the payload
+- reject packets from a locator that has not been authenticated as current
+- decrypt using the direction-specific AEAD key
 
-### Purpose
+## DATA_ACK
 
-`DATA` carries application data once the flow has been established.
+Purpose:
 
-### Sender Behavior
+- acknowledge delivery of application data
 
-The client:
+Payload fields:
 
-- sends `DATA` using the established `FlowID`
-- includes a transcript hash representing the transcript through `AUTH`
-- includes the application content in the payload
+- `nonce`
+- `ciphertext`
 
-### Receiver Behavior
+The encrypted plaintext includes:
 
-The server:
-
-- validates the `session_id` and `flow_id`
-- checks that the transcript hash matches the local transcript through `AUTH`
-- appends `DATA` to the transcript
-- returns `DATA_ACK`
-
-### Expected Fields
-
-Top-level:
-
-- `packet_type = "DATA"`
-- `flow_id` set to the established `FlowID`
-
-Payload:
-
-- `session_id`
-- `content`
-- `transcript_hash`
-
-### Transcript Hash Impact
-
-`payload.transcript_hash` covers the transcript through `AUTH`, before `DATA` is appended.
-
-### Flow Establishment Impact
-
-`DATA` uses an already-established `FlowID`; it does not create a new one.
-
-### Hybrid PQ/Classical Behavior
-
-The mode chosen earlier remains descriptive context only. No real encryption is performed in the prototype.
-
-### Fallback Behavior
-
-If the `FlowID` is absent or inconsistent, the server sends `ERROR`. The server then avoids silently hanging the client by either returning `DATA_ACK` or returning an explicit error packet.
-
-### Architectural Future Extension
-
-Future versions may define integrity tags, encryption framing, rekey logic, or mobility-related data continuation behavior. Those are not part of the prototype.
-
-## 7. Post-Data Packet: DATA_ACK
-
-`DATA_ACK` is not one of the required five handshake phases. It is a post-data acknowledgement used by the educational prototype to make the end-to-end flow observable and to avoid client hangs.
-
-Expected payload fields:
-
-- `session_id`
 - `status`
-- `flow_id`
+- `acked_sequence`
 - `received_bytes`
-- `transcript_hash`
-- `note`
+- `server_time`
 
-The `transcript_hash` in `DATA_ACK` covers the transcript through the received `DATA` packet, before `DATA_ACK` itself is appended.
+## Transcript Binding
 
-## 8. Error Packet: ERROR
+The transcript hash is computed over canonical JSON packet representations. The reference implementation binds the transcript at three points:
 
-The prototype uses an `ERROR` packet rather than silent failure when it can identify a parse, session, flow, or transcript mismatch.
+- `INIT_ACK` covers the transcript through `INIT`
+- `KEM_EXCHANGE` covers the transcript through `INIT_ACK`
+- `AUTH` covers the transcript through `KEM_EXCHANGE`
 
-Expected payload fields:
+## Hybrid And Fallback Semantics
 
-- `session_id` when known
-- `message`
-- `expected_packet_type` when helpful
+- `simulated-ml-kem-768` means the session derivation includes simulated PQ shares in addition to the real classical shared secret.
+- `none` means the session uses only the real classical baseline.
+- `fallback_used = true` is explicit whenever the peer offered PQ but the final mode is classical-only.
 
-`ERROR` packets are educational diagnostics and must not be interpreted as secure alerts.
+The current repository does not implement real ML-KEM. The hybrid branch is a transition hook, not a quantum-safe claim.

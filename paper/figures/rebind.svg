@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="250" viewBox="0 0 900 250">
+  <rect width="900" height="250" fill="#f7f4ea"/>
+  <text x="40" y="40" font-size="26" font-family="Georgia, serif" fill="#222">Authenticated Locator Rebinding</text>
+  <rect x="70" y="85" width="250" height="90" rx="12" fill="#d6e2f3" stroke="#315d8a"/>
+  <text x="110" y="130" font-size="24" font-family="Georgia, serif">Stable Identity + FlowID</text>
+  <text x="110" y="160" font-size="20" font-family="Georgia, serif">do not change</text>
+  <rect x="560" y="85" width="250" height="90" rx="12" fill="#f8ddb9" stroke="#8d5a12"/>
+  <text x="620" y="130" font-size="24" font-family="Georgia, serif">Locator changes</text>
+  <text x="596" y="160" font-size="20" font-family="Georgia, serif">after signed update</text>
+  <line x1="320" y1="130" x2="560" y2="130" stroke="#333" stroke-width="3" marker-end="url(#arrow)"/>
+  <text x="355" y="115" font-size="18" font-family="Georgia, serif">LOCATOR_UPDATE</text>
+  <text x="348" y="205" font-size="18" font-family="Georgia, serif">Identity is stable; reachability is mutable.</text>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#333"/>
+    </marker>
+  </defs>
+</svg>

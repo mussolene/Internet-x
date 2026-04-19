@@ -1,148 +1,146 @@
-# Internet-X: Identity-First Experimental Network Architecture
+# Internet-X
 
-Internet-X is an experimental network architecture that separates concerns classical IP tends to conflate. Its organizing model is:
+Internet-X is an identity-first experimental overlay transport architecture organized around an explicit resolution chain:
 
 ```text
 Name -> Identity -> Locator -> Path
 ```
 
-Where:
+The repository now contains a runnable reference implementation, a coherent specification set, an Internet-Draft-style document, a paper draft, tests, traces, and an evidence pack. The project remains experimental. It is not a production stack, not a claim that the public Internet should be replaced wholesale, and not a proof of universal optimality.
 
-- `Name` is a human-readable identifier.
-- `Identity` is a stable cryptographic identifier (`NodeID`).
-- `Locator` is current reachability information.
-- `Path` is the selected route through an overlay or future routing plane.
+## Status And Scope
 
-Internet-X is intentionally identity-first, mobility-aware, overlay-first in its initial form, and post-quantum-ready in design. It is a research repository, not a production network stack and not a claim that the current Internet can be replaced overnight.
+Current status on April 19, 2026:
 
-## Architectural Position
+- Runnable Python reference implementation in `refimpl/`
+- Packet-by-packet specification in `spec/`
+- Reproducible tests and demos in `tests/`, `scripts/`, and `examples/`
+- Prior-art, novelty, security, and evidence documents in `docs/`
+- Publication package in `paper/` and `ietf/`
+- Bounded machine-checkable invariant model in `formal/`
 
-Internet-X keeps the following separations explicit:
+Not in scope today:
 
-- A `Name` is resolved to a `NodeID`, not directly to an IP address.
-- A `NodeID` is derived from cryptographic key material and remains stable across locator changes.
-- A `Locator` reflects where a node is reachable now and may change over time.
-- A `Path` is a routing or overlay decision that is separate from both identity and locator.
+- global deployment infrastructure
+- a full routing or path-selection plane
+- a production-grade directory or locator service
+- real post-quantum cryptography in the reference implementation
+- congestion control, NAT traversal, or kernel integration
 
-This separation is intended to make mobility, multihoming, and future routing evolution easier to reason about than in a locator-bound architecture.
+## Strongest Defensible Contribution
 
-## Post-Quantum-Ready Design
+Internet-X should be read as a protocol composition and transition design, not as a claim of absolute novelty. The strongest defensible contribution in this repository is the explicit combination of:
 
-The architecture is designed to accommodate hybrid operation:
+1. `Name -> Identity -> Locator -> Path` separation as a first-class protocol model
+2. identity-bound flow establishment rather than locator-bound sessions
+3. authenticated locator rebinding as a control-path primitive
+4. packet-inspectable overlay deployment over today's Internet
+5. crypto agility with explicit hybrid and fallback semantics for post-quantum transition
 
-- ML-KEM as a candidate post-quantum KEM
-- ML-DSA as a candidate post-quantum signature scheme
-- hybrid classical-plus-post-quantum operation
-- classical fallback where post-quantum mechanisms are unavailable
+The prior-art analysis in [`docs/positioning.md`](/Users/maxon/git/me/Internet-x/docs/positioning.md) and [`docs/novelty-matrix.md`](/Users/maxon/git/me/Internet-x/docs/novelty-matrix.md) is intentionally conservative.
 
-The repository prototype does not implement real post-quantum cryptography. Any key material, handshake proofs, or transcript bindings in the prototype are simulated for educational purposes.
+## What Is Real Vs Simulated
 
-## Repository Layers
+| Component | Status | Notes |
+| --- | --- | --- |
+| Identity model (`NodeID = SHA-256(algorithm_id || signing_public_key)`) | Real in repo | Implemented in the reference code and used consistently in docs |
+| Directory and locator abstractions | Real, minimal | JSON-backed local abstractions for demo and tests |
+| Handshake state machine | Real | `INIT -> INIT_ACK -> KEM_EXCHANGE -> AUTH -> DATA`, plus `DATA_ACK` and locator update control packets |
+| Classical authenticated session establishment | Real | Ed25519 signatures, X25519 key agreement, HKDF-SHA256, ChaCha20-Poly1305 |
+| Encrypted data exchange | Real | AEAD-protected data packets in the reference implementation |
+| Replay detection for data sequence numbers | Real | Duplicate `DATA` sequences are not re-delivered |
+| Locator update authentication | Real | Signed and MACed locator update control packets |
+| Post-quantum component | Simulated | Hybrid mode mixes simulated PQ shares into transcript and derivation context; it is not real ML-KEM/ML-DSA security |
+| Global path selection plane | Conceptual | Documented architecture only |
+| Formal verification | Partial | Bounded machine-checkable invariants, not a complete proof |
 
-The repository deliberately distinguishes two layers.
+## Quickstart
 
-### Layer 1: Architecture and Specification
+From a clean clone in the audited environment:
 
-This layer captures the actual Internet-X idea:
+```bash
+python3 -m pip install -r requirements.txt
+make test
+make demo
+```
 
-- identity-first naming and routing
-- `NodeID = HASH(algorithm_id || public_key)`
-- explicit `Name`, `NodeID`, `Locator`, and `Path` separation
-- overlay-first deployment over IPv4 and IPv6
-- mobility-aware sessions and flows
-- hybrid post-quantum integration goals
+`make demo` generates demo identities, starts the server, runs a client handshake, performs an authenticated locator update, and prints the delivery result.
 
-### Layer 2: Educational Prototype
+The audited demo path is `make demo`. The lower-level CLI commands are also usable, but they require prebuilt directory and locator-registry JSON files. The repository does not ship a long-running resolver daemon; name resolution and locator lookup are file-backed abstractions in the current reference implementation.
 
-This layer is a readable simulation used to exercise the architecture:
+For direct CLI use after preparing matching directory and registry files:
 
-- localhost UDP transport
-- JSON packet serialization
-- the five-phase handshake: `INIT`, `INIT_ACK`, `KEM_EXCHANGE`, `AUTH`, `DATA`
-- `DATA_ACK` as a post-data confirmation
-- simulated cryptographic material
-- transcript hashing and `FlowID` derivation helpers
+```bash
+python3 -m refimpl.keygen --name server.demo --locator udp://127.0.0.1:9080 --out examples/identities/server.json
+python3 -m refimpl.keygen --name client.demo --locator udp://127.0.0.1:10080 --out examples/identities/client.json
+python3 -m refimpl.server --identity examples/identities/server.json
+python3 -m refimpl.client \
+  --identity examples/identities/client.json \
+  --directory examples/demo-directory.json \
+  --registry examples/demo-registry.json \
+  --peer-name server.demo \
+  --message "Hello from Internet-X." \
+  --migrate
+```
 
-The prototype exists to make the architecture concrete. It does not provide real security.
+## How To Evaluate The Claims
 
-## Repository Layout
+Use these commands from the repository root:
+
+```bash
+make test
+make demo
+python3 scripts/benchmark.py
+python3 formal/bounded_model.py
+make paper-check
+```
+
+Then read, in order:
+
+1. [`docs/positioning.md`](/Users/maxon/git/me/Internet-x/docs/positioning.md)
+2. [`spec/ixp-v0.2.md`](/Users/maxon/git/me/Internet-x/spec/ixp-v0.2.md)
+3. [`security.md`](/Users/maxon/git/me/Internet-x/spec/security.md)
+4. [`docs/evidence-pack.md`](/Users/maxon/git/me/Internet-x/docs/evidence-pack.md)
+5. [`paper/internetx.tex`](/Users/maxon/git/me/Internet-x/paper/internetx.tex)
+6. [`ietf/draft-internetx-00.md`](/Users/maxon/git/me/Internet-x/ietf/draft-internetx-00.md)
+
+## Repository Map
 
 ```text
-internet-x/
+.
 ├── README.md
+├── RESEARCH_LOG.md
+├── PROJECT_STATUS.md
+├── GAP_ANALYSIS.md
+├── CHANGELOG.md
+├── RELEASE_NOTES_v0.1.md
+├── docs/
 ├── spec/
-│   ├── ixp-v0.1.md
-│   ├── handshake.md
-│   └── packet-format.md
-├── ietf/
-│   └── draft-internetx-00.md
-├── paper/
-│   ├── abstract.md
-│   └── internetx.tex
+├── refimpl/
+├── tests/
+├── scripts/
 ├── examples/
-│   ├── handshake-trace.txt
-│   └── packet-examples.md
+├── formal/
+├── paper/
+├── ietf/
 └── prototype/
-    ├── README.md
-    ├── protocol.py
-    ├── node.py
-    ├── server.py
-    └── client.py
 ```
 
-## Handshake Overview
+## Legacy Material
 
-The educational prototype keeps these phases explicit:
+The older `prototype/` directory is preserved as the earlier educational JSON-only v0.1 artifact. The current reference implementation and current specification baseline are `refimpl/` and `spec/ixp-v0.2.md`.
 
-1. `INIT`
-2. `INIT_ACK`
-3. `KEM_EXCHANGE`
-4. `AUTH`
-5. `DATA`
+## Limitations
 
-The prototype then uses `DATA_ACK` to confirm application data receipt. Session and flow state are carried in JSON packets so the architecture is easy to inspect.
+Internet-X in this repository still has hard limits:
 
-## Deployment Model
-
-Internet-X is defined here as an overlay architecture first:
-
-- initial deployment rides over IPv4 and IPv6
-- current reachability is expressed as a `Locator`
-- future native deployment is a research direction, not current scope
-
-This repository does not claim native deployment today.
-
-## Status
-
-Current status:
-
-- architecture draft and exploratory documentation
-- IETF-style draft material
-- educational Python prototype for the handshake and packet model
-
-Not current status:
-
-- production readiness
-- complete routing plane
-- real post-quantum cryptography
-- full mobility implementation
-
-## Prototype Quick Start
-
-From the repository root:
-
-```bash
-python3 prototype/server.py
-```
-
-In a second terminal:
-
-```bash
-python3 prototype/client.py
-```
-
-See `prototype/README.md` for details.
+- the directory and locator registry are local JSON files, not secure global services
+- the prototype uses a user-space Python UDP overlay and does not integrate with host sockets or routing tables
+- hybrid PQ mode is not cryptographically real
+- privacy properties are limited because locator metadata remains visible in control packets
+- no congestion control, PMTU discovery, NAT traversal, or large-scale operational evidence is provided
+- the evaluation package demonstrates a strong design point under explicit assumptions; it does not prove universal optimality
 
 ## License
 
-MIT License. See `LICENSE`.
+MIT. See [`LICENSE`](/Users/maxon/git/me/Internet-x/LICENSE).

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="220" viewBox="0 0 900 220">
+  <rect width="900" height="220" fill="#f7f4ea"/>
+  <text x="40" y="40" font-size="26" font-family="Georgia, serif" fill="#222">Internet-X Resolution Chain</text>
+  <rect x="40" y="80" width="170" height="70" rx="12" fill="#d9e8d8" stroke="#355c3b"/>
+  <text x="100" y="122" font-size="28" font-family="Georgia, serif">Name</text>
+  <rect x="260" y="80" width="170" height="70" rx="12" fill="#d6e2f3" stroke="#315d8a"/>
+  <text x="306" y="122" font-size="28" font-family="Georgia, serif">Identity</text>
+  <rect x="480" y="80" width="170" height="70" rx="12" fill="#f8ddb9" stroke="#8d5a12"/>
+  <text x="537" y="122" font-size="28" font-family="Georgia, serif">Locator</text>
+  <rect x="700" y="80" width="150" height="70" rx="12" fill="#ead7e7" stroke="#7a4c6f"/>
+  <text x="748" y="122" font-size="28" font-family="Georgia, serif">Path</text>
+  <line x1="210" y1="115" x2="260" y2="115" stroke="#333" stroke-width="3" marker-end="url(#arrow)"/>
+  <line x1="430" y1="115" x2="480" y2="115" stroke="#333" stroke-width="3" marker-end="url(#arrow)"/>
+  <line x1="650" y1="115" x2="700" y2="115" stroke="#333" stroke-width="3" marker-end="url(#arrow)"/>
+  <text x="42" y="190" font-size="18" font-family="Georgia, serif" fill="#333">Stable identity anchors sessions; locators change; paths remain a separate architectural concern.</text>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#333"/>
+    </marker>
+  </defs>
+</svg>

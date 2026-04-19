@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="360" viewBox="0 0 900 360">
+  <rect width="900" height="360" fill="#fbf8f1"/>
+  <text x="40" y="40" font-size="26" font-family="Georgia, serif" fill="#222">Internet-X Handshake</text>
+  <text x="180" y="75" font-size="22" font-family="Georgia, serif">Client</text>
+  <text x="660" y="75" font-size="22" font-family="Georgia, serif">Server</text>
+  <line x1="220" y1="90" x2="220" y2="320" stroke="#555" stroke-width="2"/>
+  <line x1="700" y1="90" x2="700" y2="320" stroke="#555" stroke-width="2"/>
+  <line x1="230" y1="120" x2="690" y2="120" stroke="#315d8a" stroke-width="3" marker-end="url(#arrow)"/>
+  <text x="360" y="112" font-size="18" font-family="Georgia, serif">INIT</text>
+  <line x1="690" y1="160" x2="230" y2="160" stroke="#315d8a" stroke-width="3" marker-end="url(#arrowLeft)"/>
+  <text x="340" y="152" font-size="18" font-family="Georgia, serif">INIT_ACK</text>
+  <line x1="230" y1="200" x2="690" y2="200" stroke="#8d5a12" stroke-width="3" marker-end="url(#arrow)"/>
+  <text x="330" y="192" font-size="18" font-family="Georgia, serif">KEM_EXCHANGE</text>
+  <line x1="690" y1="240" x2="230" y2="240" stroke="#8d5a12" stroke-width="3" marker-end="url(#arrowLeft)"/>
+  <text x="392" y="232" font-size="18" font-family="Georgia, serif">AUTH</text>
+  <line x1="230" y1="280" x2="690" y2="280" stroke="#355c3b" stroke-width="3" marker-end="url(#arrow)"/>
+  <text x="395" y="272" font-size="18" font-family="Georgia, serif">DATA</text>
+  <line x1="690" y1="315" x2="230" y2="315" stroke="#355c3b" stroke-width="3" marker-end="url(#arrowLeft)"/>
+  <text x="372" y="307" font-size="18" font-family="Georgia, serif">DATA_ACK</text>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#333"/>
+    </marker>
+    <marker id="arrowLeft" markerWidth="10" markerHeight="10" refX="2" refY="3" orient="auto">
+      <path d="M9,0 L9,6 L0,3 z" fill="#333"/>
+    </marker>
+  </defs>
+</svg>
