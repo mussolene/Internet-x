@@ -1,0 +1,5 @@
+Client -> INIT: {"client_id":"12345","timestamp":"2026-04-19 06:02:24"}
+Server -> INIT_ACK: {"ack_id":"1","timestamp":"2026-04-19 06:02:25"}
+Client -> REQUEST: {"request_id":"1","payload":{"data":"Hello Server!"},"timestamp":"2026-04-19 06:02:26"}
+Server -> RESPONSE: {"response_id":"1","payload":{"data":"Hello Client!"},"timestamp":"2026-04-19 06:02:27"}
+Client -> COMPLETE: {"complete_id":"1","timestamp":"2026-04-19 06:02:28"}
