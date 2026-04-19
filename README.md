@@ -1,118 +1,148 @@
 # Internet-X: Identity-First Experimental Network Architecture
 
-Internet-X is an experimental protocol architecture designed to separate and decouple fundamental network concepts that the classical IP model conflates: human-readable naming, cryptographic identity, network location, and route selection.
+Internet-X is an experimental network architecture that separates concerns classical IP tends to conflate. Its organizing model is:
 
-## Core Model
-
-The Internet-X architecture is built on a simple but powerful mapping:
-
-```
+```text
 Name -> Identity -> Locator -> Path
 ```
 
 Where:
-- **Name**: Human-readable, application-level identifier (e.g., user@service)
-- **Identity (NodeID)**: Cryptographic identifier derived from public key material
-- **Locator**: Current reachability information (IP address, port, endpoint)
-- **Path**: Selected route through the network overlay
 
-## Why the Current IP Model Is Insufficient
+- `Name` is a human-readable identifier.
+- `Identity` is a stable cryptographic identifier (`NodeID`).
+- `Locator` is current reachability information.
+- `Path` is the selected route through an overlay or future routing plane.
 
-The classical Internet Protocol binds identity to location. An IP address simultaneously represents:
-1. Who you are (identity)
-2. Where you are (location)
-3. Your path to the Internet
+Internet-X is intentionally identity-first, mobility-aware, overlay-first in its initial form, and post-quantum-ready in design. It is a research repository, not a production network stack and not a claim that the current Internet can be replaced overnight.
 
-This coupling creates fundamental problems:
-- **Mobility breaks connections**: Moving networks changes your address, severing sessions
-- **Multihoming is complex**: Multiple addresses complicate identity verification
-- **Scalability issues**: DNS and routing operate on the same address space
-- **Security is location-dependent**: Endpoint authentication tied to topology
-- **Privacy concerns**: Your location is your identity to observers
+## Architectural Position
 
-## What Internet-X Changes
+Internet-X keeps the following separations explicit:
 
-Internet-X decouples these concerns:
+- A `Name` is resolved to a `NodeID`, not directly to an IP address.
+- A `NodeID` is derived from cryptographic key material and remains stable across locator changes.
+- A `Locator` reflects where a node is reachable now and may change over time.
+- A `Path` is a routing or overlay decision that is separate from both identity and locator.
 
-1. **Separation of concerns**: Name, identity, location, and path are independent layers
-2. **Identity-first design**: Cryptographic identity is the stable anchor
-3. **Transparent mobility**: Change locators without disrupting sessions
-4. **Post-quantum ready**: Handshake designed with hybrid ML-KEM/ML-DSA support
-5. **Overlay deployment**: Runs over existing IPv4/IPv6 infrastructure initially
-6. **Future path**: Designed for eventual native deployment
+This separation is intended to make mobility, multihoming, and future routing evolution easier to reason about than in a locator-bound architecture.
+
+## Post-Quantum-Ready Design
+
+The architecture is designed to accommodate hybrid operation:
+
+- ML-KEM as a candidate post-quantum KEM
+- ML-DSA as a candidate post-quantum signature scheme
+- hybrid classical-plus-post-quantum operation
+- classical fallback where post-quantum mechanisms are unavailable
+
+The repository prototype does not implement real post-quantum cryptography. Any key material, handshake proofs, or transcript bindings in the prototype are simulated for educational purposes.
+
+## Repository Layers
+
+The repository deliberately distinguishes two layers.
+
+### Layer 1: Architecture and Specification
+
+This layer captures the actual Internet-X idea:
+
+- identity-first naming and routing
+- `NodeID = HASH(algorithm_id || public_key)`
+- explicit `Name`, `NodeID`, `Locator`, and `Path` separation
+- overlay-first deployment over IPv4 and IPv6
+- mobility-aware sessions and flows
+- hybrid post-quantum integration goals
+
+### Layer 2: Educational Prototype
+
+This layer is a readable simulation used to exercise the architecture:
+
+- localhost UDP transport
+- JSON packet serialization
+- the five-phase handshake: `INIT`, `INIT_ACK`, `KEM_EXCHANGE`, `AUTH`, `DATA`
+- `DATA_ACK` as a post-data confirmation
+- simulated cryptographic material
+- transcript hashing and `FlowID` derivation helpers
+
+The prototype exists to make the architecture concrete. It does not provide real security.
 
 ## Repository Layout
 
-```
+```text
 internet-x/
-├── README.md                    # This file
-├── LICENSE                      # MIT License
-├── .gitignore                   # Python and LaTeX ignores
-├── spec/                        # Technical specifications
-│   ├── ixp-v0.1.md             # Core protocol specification
-│   ├── handshake.md            # Detailed handshake phases
-│   └── packet-format.md        # Wire protocol format
-├── ietf/                        # IETF Internet-Draft style
+├── README.md
+├── spec/
+│   ├── ixp-v0.1.md
+│   ├── handshake.md
+│   └── packet-format.md
+├── ietf/
 │   └── draft-internetx-00.md
-├── paper/                       # Academic paper materials
-│   ├── abstract.md             # arXiv abstract
-│   └── internetx.tex           # LaTeX paper source
-├── examples/                    # Protocol examples and traces
-│   ├── handshake-trace.txt     # Realistic handshake transcript
-│   └── packet-examples.md      # Packet format examples
-└── prototype/                   # Educational reference implementation
-    ├── README.md               # Prototype documentation
-    ├── protocol.py             # Protocol definitions and helpers
-    ├── node.py                 # Node identity abstraction
-    ├── server.py               # Reference UDP server
-    └── client.py               # Reference UDP client
+├── paper/
+│   ├── abstract.md
+│   └── internetx.tex
+├── examples/
+│   ├── handshake-trace.txt
+│   └── packet-examples.md
+└── prototype/
+    ├── README.md
+    ├── protocol.py
+    ├── node.py
+    ├── server.py
+    └── client.py
 ```
 
 ## Handshake Overview
 
-Internet-X uses a five-phase handshake:
+The educational prototype keeps these phases explicit:
 
-1. **INIT**: Client initiates connection with ephemeral key material
-2. **INIT_ACK**: Server responds with its own key material and session identifier
-3. **KEM_EXCHANGE**: Client sends encapsulated key material (classical + PQ candidates)
-4. **AUTH**: Server sends authentication confirmation and initial flow key material
-5. **DATA**: Regular encrypted data exchange
+1. `INIT`
+2. `INIT_ACK`
+3. `KEM_EXCHANGE`
+4. `AUTH`
+5. `DATA`
 
-The handshake transcript is hashed and bound into the session key, ensuring mutual authentication and perfect forward secrecy properties.
+The prototype then uses `DATA_ACK` to confirm application data receipt. Session and flow state are carried in JSON packets so the architecture is easy to inspect.
 
-## Hybrid Post-Quantum Design
+## Deployment Model
 
-Internet-X handshake is designed to operate in hybrid mode:
-- **Primary track**: Classical cryptography (X25519 / Ed25519)
-- **Secondary track**: Post-quantum candidates (ML-KEM / ML-DSA)
-- **Fallback**: If either mechanism is unavailable, single-track operation is supported
+Internet-X is defined here as an overlay architecture first:
 
-This allows deployment today while supporting future quantum-resistant operation.
+- initial deployment rides over IPv4 and IPv6
+- current reachability is expressed as a `Locator`
+- future native deployment is a research direction, not current scope
 
-## Status and Roadmap
+This repository does not claim native deployment today.
 
-**Current Status**: Experimental specification and educational prototype (v0.1)
+## Status
 
-**Roadmap**:
-- v0.1: Core specification and basic prototype
-- v0.2: Extended mobility handling and path selection
-- v0.3: Full hybrid PQ evaluation and performance analysis
-- v1.0: Candidate for standardization consideration
+Current status:
 
-## Disclaimer
+- architecture draft and exploratory documentation
+- IETF-style draft material
+- educational Python prototype for the handshake and packet model
 
-**This is an experimental project.** Internet-X is:
-- Not production-ready
-- Not approved for critical infrastructure
-- A research platform for exploring identity-first network design
-- Intended for educational and academic study
+Not current status:
 
-The prototype implementation includes simulated cryptography for demonstration purposes only. Do not use it for real security-sensitive applications.
+- production readiness
+- complete routing plane
+- real post-quantum cryptography
+- full mobility implementation
 
-## Author
+## Prototype Quick Start
 
-**mussolene**
+From the repository root:
+
+```bash
+python3 prototype/server.py
+```
+
+In a second terminal:
+
+```bash
+python3 prototype/client.py
+```
+
+See `prototype/README.md` for details.
 
 ## License
 
-MIT License. See LICENSE file for details.
+MIT License. See `LICENSE`.

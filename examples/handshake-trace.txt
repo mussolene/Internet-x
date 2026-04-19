@@ -1,5 +1,17 @@
-Client -> INIT: {"client_id":"12345","timestamp":"2026-04-19 06:02:24"}
-Server -> INIT_ACK: {"ack_id":"1","timestamp":"2026-04-19 06:02:25"}
-Client -> REQUEST: {"request_id":"1","payload":{"data":"Hello Server!"},"timestamp":"2026-04-19 06:02:26"}
-Server -> RESPONSE: {"response_id":"1","payload":{"data":"Hello Client!"},"timestamp":"2026-04-19 06:02:27"}
-Client -> COMPLETE: {"complete_id":"1","timestamp":"2026-04-19 06:02:28"}
+Client -> INIT:
+{"version":1,"packet_type":"INIT","flags":[],"header_length":239,"flow_id":null,"source_node_id":"8458e997fe8ecf2ec8e1ef5b0d0fd4482d4addfdb85ca3900f4fb93d08d985ef","destination_node_id":"4707f719ffb2e8f9d02d5ab1e21602cc53f63a8cf8b91c09363d39f0db6be5dd","locator_hint":"udp://localhost:8080","payload":{"session_id":"7c942c5f7af7454f9c8458f29242a0ea","sender_name":"client.demo","algorithm_id":"hybrid-simulated","supported_modes":["hybrid-simulated","classical-simulated"],"client_nonce":"b6ab18e63e214c83956d0f5620ef557a","client_key_material":"simulated-client-ephemeral-key","note":"Educational INIT packet only."}}
+
+Server -> INIT_ACK:
+{"version":1,"packet_type":"INIT_ACK","flags":[],"header_length":243,"flow_id":null,"source_node_id":"4707f719ffb2e8f9d02d5ab1e21602cc53f63a8cf8b91c09363d39f0db6be5dd","destination_node_id":"8458e997fe8ecf2ec8e1ef5b0d0fd4482d4addfdb85ca3900f4fb93d08d985ef","locator_hint":"udp://localhost:8080","payload":{"session_id":"7c942c5f7af7454f9c8458f29242a0ea","selected_mode":"hybrid-simulated","server_nonce":"d940f693dc0e4cb4b446decefc54f1d4","server_key_material":"simulated-server-ephemeral-key","transcript_hash":"a9b95ce3822bf38136fc2f96fcf9cb7751bfdc9f3b1799482926b6d7dfd37b7f","note":"Educational INIT_ACK packet only."}}
+
+Client -> KEM_EXCHANGE:
+{"version":1,"packet_type":"KEM_EXCHANGE","flags":[],"header_length":248,"flow_id":null,"source_node_id":"8458e997fe8ecf2ec8e1ef5b0d0fd4482d4addfdb85ca3900f4fb93d08d985ef","destination_node_id":"4707f719ffb2e8f9d02d5ab1e21602cc53f63a8cf8b91c09363d39f0db6be5dd","locator_hint":"udp://localhost:8080","payload":{"session_id":"7c942c5f7af7454f9c8458f29242a0ea","encapsulated_key_material":"simulated-kem-ciphertext","classical_share":"simulated-classical-share","pq_share":"simulated-pq-share","transcript_hash":"f1044e918fb9d73fdc2d67a9e5e4f8f5a88caac1f7119a94e42b6e32b17d2021","note":"Simulated KEM exchange material for architecture testing."}}
+
+Server -> AUTH:
+{"version":1,"packet_type":"AUTH","flags":[],"header_length":292,"flow_id":"5ca6d7f1bb651f4564488c913740f77b1f4b5932e9517ebc2c62f7d932f5599c","source_node_id":"4707f719ffb2e8f9d02d5ab1e21602cc53f63a8cf8b91c09363d39f0db6be5dd","destination_node_id":"8458e997fe8ecf2ec8e1ef5b0d0fd4482d4addfdb85ca3900f4fb93d08d985ef","locator_hint":"udp://localhost:8080","payload":{"session_id":"7c942c5f7af7454f9c8458f29242a0ea","auth_result":"accepted","flow_id":"5ca6d7f1bb651f4564488c913740f77b1f4b5932e9517ebc2c62f7d932f5599c","transcript_hash":"c632b2a9925c4756f9b407f2ab5d20f3eac9ca2287302447a246e43ef95f0d10","auth_proof":"simulated-server-auth-binding","note":"Educational AUTH packet only; no real cryptographic assurance."}}
+
+Client -> DATA:
+{"version":1,"packet_type":"DATA","flags":[],"header_length":286,"flow_id":"5ca6d7f1bb651f4564488c913740f77b1f4b5932e9517ebc2c62f7d932f5599c","source_node_id":"8458e997fe8ecf2ec8e1ef5b0d0fd4482d4addfdb85ca3900f4fb93d08d985ef","destination_node_id":"4707f719ffb2e8f9d02d5ab1e21602cc53f63a8cf8b91c09363d39f0db6be5dd","locator_hint":"udp://localhost:8080","payload":{"session_id":"7c942c5f7af7454f9c8458f29242a0ea","content":"Hello from the educational Internet-X client.","transcript_hash":"b5a55972c06a3e16af43ceb1c2d8cc53be083e506c071326514580cb7c61f650"}}
+
+Server -> DATA_ACK:
+{"version":1,"packet_type":"DATA_ACK","flags":[],"header_length":296,"flow_id":"5ca6d7f1bb651f4564488c913740f77b1f4b5932e9517ebc2c62f7d932f5599c","source_node_id":"4707f719ffb2e8f9d02d5ab1e21602cc53f63a8cf8b91c09363d39f0db6be5dd","destination_node_id":"8458e997fe8ecf2ec8e1ef5b0d0fd4482d4addfdb85ca3900f4fb93d08d985ef","locator_hint":"udp://localhost:8080","payload":{"session_id":"7c942c5f7af7454f9c8458f29242a0ea","status":"delivered","flow_id":"5ca6d7f1bb651f4564488c913740f77b1f4b5932e9517ebc2c62f7d932f5599c","received_bytes":45,"transcript_hash":"1cb4e53659f01141291dc6b1962ccf58fa49a44f2592f03c6f353051c4930bc1","note":"Educational DATA_ACK packet only."}}

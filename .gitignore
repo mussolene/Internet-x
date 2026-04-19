@@ -1,12 +1,45 @@
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
 # Python
-*.pyc
 __pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.python-version
 .venv/
 venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# Local automation / agent artifacts
+.agent/
+.agents/
+.claude/
+.codex/
+AGENTS.md
+CLAUDE.md
+
+# Logs and local outputs
+*.log
 
 # LaTeX
 *.aux
-*.log
 *.out
 *.toc
 *.pdf
+*.fls
+*.fdb_latexmk
+*.synctex.gz

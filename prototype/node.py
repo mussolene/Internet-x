@@ -1,21 +1,47 @@
+"""Identity abstraction for the educational Internet-X prototype."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, replace
+import hashlib
+
+
+@dataclass(frozen=True, slots=True)
 class NodeIdentity:
-    def __init__(self, node_id, address):
-        """
-        Initialize a new NodeIdentity with a node ID and address.
-        
-        :param node_id: Unique identifier for the node.
-        :param address: Address of the node.
-        """
-        self.node_id = node_id
-        self.address = address
+    """Stable node identity plus current locator information.
 
-    def __repr__(self):
-        return f"NodeIdentity(node_id={self.node_id}, address={self.address})"
+    The prototype mirrors the architectural rule:
+    NodeID = HASH(algorithm_id || public_key)
 
-    def __eq__(self, other):
-        if not isinstance(other, NodeIdentity):
-            return False
-        return self.node_id == other.node_id and self.address == other.address
+    The digest and public material are simulated for educational purposes.
+    """
 
-    def __hash__(self):
-        return hash((self.node_id, self.address))
+    name: str
+    node_id: str
+    algorithm_id: str
+    locator: str
+
+    @classmethod
+    def from_public_material(
+        cls,
+        *,
+        name: str,
+        algorithm_id: str,
+        locator: str,
+        public_key_material: str,
+    ) -> "NodeIdentity":
+        node_id = hashlib.sha256(f"{algorithm_id}|{public_key_material}".encode("utf-8")).hexdigest()
+        return cls(name=name, node_id=node_id, algorithm_id=algorithm_id, locator=locator)
+
+    def with_locator(self, locator: str) -> "NodeIdentity":
+        """Return the same identity at a new locator."""
+
+        return replace(self, locator=locator)
+
+    def as_dict(self) -> dict[str, str]:
+        return {
+            "name": self.name,
+            "node_id": self.node_id,
+            "algorithm_id": self.algorithm_id,
+            "locator": self.locator,
+        }

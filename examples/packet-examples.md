@@ -1,80 +1,157 @@
-# Packet Examples
+# Internet-X Packet Examples
 
-This document provides example descriptions for various packet types utilized in the communication protocol.
+These examples follow the educational JSON prototype, not a production wire format.
+
+## Common Envelope
+
+Every packet uses:
+
+```json
+{
+  "version": 1,
+  "packet_type": "INIT",
+  "flags": [],
+  "header_length": 239,
+  "flow_id": null,
+  "source_node_id": "<source NodeID>",
+  "destination_node_id": "<destination NodeID>",
+  "locator_hint": "udp://localhost:8080",
+  "payload": {}
+}
+```
 
 ## INIT
 
-### Description:
-The INIT packet is the first message sent to initiate the connection. It contains the necessary information to begin handshaking between the parties.
-
-### Example:
-```
-INIT:
+```json
 {
-  "session_id": "123456",
-  "client_id": "user123",
-  "timestamp": "2026-04-19T06:02:26Z"
+  "version": 1,
+  "packet_type": "INIT",
+  "flags": [],
+  "header_length": 239,
+  "flow_id": null,
+  "source_node_id": "<client NodeID>",
+  "destination_node_id": "<server NodeID>",
+  "locator_hint": "udp://localhost:8080",
+  "payload": {
+    "session_id": "7c942c5f7af7454f9c8458f29242a0ea",
+    "sender_name": "client.demo",
+    "algorithm_id": "hybrid-simulated",
+    "supported_modes": ["hybrid-simulated", "classical-simulated"],
+    "client_nonce": "b6ab18e63e214c83956d0f5620ef557a",
+    "client_key_material": "simulated-client-ephemeral-key",
+    "note": "Educational INIT packet only."
+  }
 }
 ```
 
 ## INIT_ACK
 
-### Description:
-The INIT_ACK packet is sent in response to an INIT packet, acknowledging the receipt and acceptance of the request.
-
-### Example:
-```
-INIT_ACK:
+```json
 {
-  "session_id": "123456",
-  "status": "accepted",
-  "server_id": "server321",
-  "timestamp": "2026-04-19T06:02:26Z"
+  "version": 1,
+  "packet_type": "INIT_ACK",
+  "flags": [],
+  "header_length": 243,
+  "flow_id": null,
+  "source_node_id": "<server NodeID>",
+  "destination_node_id": "<client NodeID>",
+  "locator_hint": "udp://localhost:8080",
+  "payload": {
+    "session_id": "7c942c5f7af7454f9c8458f29242a0ea",
+    "selected_mode": "hybrid-simulated",
+    "server_nonce": "d940f693dc0e4cb4b446decefc54f1d4",
+    "server_key_material": "simulated-server-ephemeral-key",
+    "transcript_hash": "<hash of transcript through INIT>",
+    "note": "Educational INIT_ACK packet only."
+  }
 }
 ```
 
 ## KEM_EXCHANGE
 
-### Description:
-The KEM_EXCHANGE packet is used during the key exchange process to securely share encryption keys between parties.
-
-### Example:
-```
-KEM_EXCHANGE:
+```json
 {
-  "session_id": "123456",
-  "public_key": "abcdef123456",
-  "timestamp": "2026-04-19T06:02:26Z"
+  "version": 1,
+  "packet_type": "KEM_EXCHANGE",
+  "flags": [],
+  "header_length": 248,
+  "flow_id": null,
+  "source_node_id": "<client NodeID>",
+  "destination_node_id": "<server NodeID>",
+  "locator_hint": "udp://localhost:8080",
+  "payload": {
+    "session_id": "7c942c5f7af7454f9c8458f29242a0ea",
+    "encapsulated_key_material": "simulated-kem-ciphertext",
+    "classical_share": "simulated-classical-share",
+    "pq_share": "simulated-pq-share",
+    "transcript_hash": "<hash of transcript through INIT_ACK>",
+    "note": "Simulated KEM exchange material for architecture testing."
+  }
 }
 ```
 
 ## AUTH
 
-### Description:
-The AUTH packet is sent to authenticate a user once the connection is established. It includes user credentials and proof of identity.
-
-### Example:
-```
-AUTH:
+```json
 {
-  "session_id": "123456",
-  "username": "user123",
-  "password_hash": "hashed_password",
-  "timestamp": "2026-04-19T06:02:26Z"
+  "version": 1,
+  "packet_type": "AUTH",
+  "flags": [],
+  "header_length": 292,
+  "flow_id": "<derived FlowID>",
+  "source_node_id": "<server NodeID>",
+  "destination_node_id": "<client NodeID>",
+  "locator_hint": "udp://localhost:8080",
+  "payload": {
+    "session_id": "7c942c5f7af7454f9c8458f29242a0ea",
+    "auth_result": "accepted",
+    "flow_id": "<derived FlowID>",
+    "transcript_hash": "<hash of transcript through KEM_EXCHANGE>",
+    "auth_proof": "simulated-server-auth-binding",
+    "note": "Educational AUTH packet only; no real cryptographic assurance."
+  }
 }
 ```
 
 ## DATA
 
-### Description:
-The DATA packet is used to transmit actual data after the connection has been established and authenticated.
-
-### Example:
-```
-DATA:
+```json
 {
-  "session_id": "123456",
-  "data": "Hello, this is a data message.",
-  "timestamp": "2026-04-19T06:02:26Z"
+  "version": 1,
+  "packet_type": "DATA",
+  "flags": [],
+  "header_length": 286,
+  "flow_id": "<derived FlowID>",
+  "source_node_id": "<client NodeID>",
+  "destination_node_id": "<server NodeID>",
+  "locator_hint": "udp://localhost:8080",
+  "payload": {
+    "session_id": "7c942c5f7af7454f9c8458f29242a0ea",
+    "content": "Hello from the educational Internet-X client.",
+    "transcript_hash": "<hash of transcript through AUTH>"
+  }
+}
+```
+
+## DATA_ACK
+
+```json
+{
+  "version": 1,
+  "packet_type": "DATA_ACK",
+  "flags": [],
+  "header_length": 296,
+  "flow_id": "<derived FlowID>",
+  "source_node_id": "<server NodeID>",
+  "destination_node_id": "<client NodeID>",
+  "locator_hint": "udp://localhost:8080",
+  "payload": {
+    "session_id": "7c942c5f7af7454f9c8458f29242a0ea",
+    "status": "delivered",
+    "flow_id": "<derived FlowID>",
+    "received_bytes": 45,
+    "transcript_hash": "<hash of transcript through DATA>",
+    "note": "Educational DATA_ACK packet only."
+  }
 }
 ```

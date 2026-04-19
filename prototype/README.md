@@ -1,22 +1,60 @@
-# Prototype Overview
+# Internet-X Prototype
 
-## Introduction
-This prototype is designed for educational purposes only. It is not intended for secure production use in cryptographic applications.
+This prototype is educational. It exists to exercise the Internet-X architecture, packet structure, transcript handling, and handshake sequencing in a small readable codebase.
 
-## File Descriptions
-- **server.js**: This file contains the implementation of the server-side component. It handles incoming requests and manages client connections.
-- **client.js**: This file includes the logic for the client-side application, which interacts with the server and simulates user actions.
-- **config.js**: Configuration settings for both the server and client, which can be modified based on the environment.
+It is not a secure protocol implementation.
 
-## Running the Server
-1. Navigate to the project directory.
-2. Ensure you have Node.js installed.
-3. Run the command: `node server.js` to start the server.
+## What The Prototype Demonstrates
 
-## Running the Client
-1. Open a new terminal window.
-2. Navigate to the project directory.
-3. Use the command: `node client.js` to start the client.
+- identity-oriented packet metadata
+- separation of `NodeID` and `Locator`
+- JSON packet encoding through a shared protocol module
+- the phase sequence `INIT -> INIT_ACK -> KEM_EXCHANGE -> AUTH -> DATA`
+- `DATA_ACK` as a post-data acknowledgement
+- transcript hashing and `FlowID` derivation
 
-## Simulation vs Real
-This prototype simulates certain aspects of a cryptographic application, such as data encryption and decryption. However, it does not implement robust security features needed for real-world applications. Always assume this implementation is vulnerable and avoid using it for real data transmission.
+## What The Prototype Does Not Demonstrate
+
+- real confidentiality
+- real authentication
+- real ML-KEM or ML-DSA integration
+- production error handling
+- full mobility signaling or locator migration
+
+All cryptographic material in this directory is simulated for educational purposes. The packet flow is also simulated. The goal is architectural clarity, not security.
+
+## Files
+
+- `protocol.py`: shared packet constants, JSON serialization, transcript hashing, and `FlowID` derivation
+- `node.py`: simple identity abstraction with stable `NodeID` and mutable locator concept
+- `server.py`: UDP server responding with `INIT_ACK`, `AUTH`, and `DATA_ACK`
+- `client.py`: UDP client driving the end-to-end exchange
+
+## Run Instructions
+
+From the repository root, start the server:
+
+```bash
+python3 prototype/server.py
+```
+
+Then, in a second terminal, run the client:
+
+```bash
+python3 prototype/client.py
+```
+
+The default transport is localhost UDP on port `8080`.
+
+## Expected Packet Flow
+
+The prototype should log this sequence without hanging:
+
+1. `INIT`
+2. `INIT_ACK`
+3. `KEM_EXCHANGE`
+4. `AUTH`
+5. `DATA`
+6. `DATA_ACK`
+
+If a packet is malformed or out of sequence, the server returns `ERROR` instead of silently waiting.
